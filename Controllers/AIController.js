@@ -294,8 +294,10 @@ async function getDocument(companyId){
 const loginSteps = new Map();
 
 async function sendandReply(req, res) {
-    console.log(req.Body);
-    
+    console.log(req.body);
+    console.log(req.body.From);
+    console.log(req.body.To);
+
     const from = req.body.From;
     const to = req.body.To;
     const message = req.body.Body?.trim();
