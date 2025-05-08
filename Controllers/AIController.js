@@ -259,9 +259,10 @@ async function loginUserBot(email, password){
         const user =await(await pool.request()
         .input("Email", email)
         .execute("getUserByEmail")).recordset 
+       console.log(user);
        
         const isValid =  await bcrypt.compare(password, user[0].Password)
-       
+        console.log(isValid);
         if( !isValid || user.length==0){
             return {islogged:false}
         }else{

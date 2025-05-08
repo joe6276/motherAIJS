@@ -28,10 +28,11 @@ bot.on('message', async (msg) => {
         } else if (session.step === 3) {
             const { email } = session.temp;
             const password = userMessage 
-
+            console.log("TB",email,password);
+            
            const isloginValid =await loginUserBot(email, password)
             result=isloginValid
-            console.log(result);
+            console.log(isloginValid);
             
             if (isloginValid.islogged) {
                 session.step = 4;
