@@ -338,23 +338,25 @@ async function sendandReply(req, res) {
                 if(userres[0].Department.toLowerCase() === "Finance".toLowerCase()){
                     const document = await getDocument(userres[0].CompanyId)
                     responseMessage = await chatWithFinanceBot(document.DocumentURL, message)
-
+                    await client.messages.create({
+                        from: to,
+                        to: from,
+                        body: responseMessage
+                    });
               
                 }else{
                     const response = await getChatResponse1(message, from,   userres[0].Occupation );
-                    responseMessage = response;
+                    await client.messages.create({
+                        from: to,
+                        to: from,
+                        body: responseMessage
+                    });
                 }
 
      
         }
-        console.log("response",responseMessage);
-        await client.messages.create({
-            from: to,
-            to: from,
-            body: responseMessage
-        });
-
-        await insertToDB(message, responseMessage, "Whatsapp", from);
+      
+        // await insertToDB(message, responseMessage, "Whatsapp", from);
         console.log(`Replied to ${from}`);
     } catch (err) {
         console.error("Error:", err);
