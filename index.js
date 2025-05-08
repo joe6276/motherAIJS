@@ -11,7 +11,7 @@ const { uploadRouter } = require("./Routes/BlobRoutes")
 
 
 const app= express()
-
+app.use(express.urlencoded({ extended: false }));
 app.use(json())
 app.use(cors())
 
