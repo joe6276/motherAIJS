@@ -294,9 +294,13 @@ async function getDocument(companyId){
 const loginSteps = new Map();
 
 async function sendandReply(req, res) {
+    console.log(req.Body);
+    
     const from = req.body.From;
     const to = req.body.To;
     const message = req.body.Body?.trim();
+    console.log(process.env.ACCOUNT_SID);
+    console.log(process.env.AUTH_TOKEN);
     const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 
     let myemail='';
