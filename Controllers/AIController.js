@@ -294,15 +294,10 @@ async function getDocument(companyId){
 const loginSteps = new Map();
 
 async function sendandReply(req, res) {
-    console.log(req.body);
-    console.log(req.body.From);
-    console.log(req.body.To);
-
     const from = req.body.From;
     const to = req.body.To;
     const message = req.body.Body?.trim();
-    console.log(process.env.ACCOUNT_SID);
-    console.log(process.env.AUTH_TOKEN);
+    
     const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 
     let myemail='';
@@ -336,23 +331,23 @@ async function sendandReply(req, res) {
             }
         } else {
             // Step 4: Already authenticated
-            console.log("here" , session.temp?.email);
+  
             const userres = await getOccupation(session.temp?.email)
-            console.log(userres)
 
             let responseMessage=""
                 if(userres[0].Department.toLowerCase() === "Finance".toLowerCase()){
                     const document = await getDocument(userres[0].CompanyId)
                     responseMessage = await chatWithFinanceBot(document.DocumentURL, message)
+
               
                 }else{
                     const response = await getChatResponse1(message, from,   userres[0].Occupation );
                     responseMessage = response;
                 }
 
-                console.log(responseMessage);
+     
         }
-
+        console.log("response",responseMessage);
         await client.messages.create({
             from: to,
             to: from,
