@@ -53,20 +53,18 @@ bot.on('message', async (msg) => {
             console.log("here" , session.temp?.email);
            const userRes = await getOccupation(session.temp?.email)
             
-           if (userRes[0].Department.toLowerCase()==="Finance".toLowerCase() ) {
+        //    if (userRes[0].Department.toLowerCase()==="Finance".toLowerCase() ) {
             const document = await getDocument(userRes[0].CompanyId);
-            console.log(document);
+         
             const botReply = await chatWithFinanceBot(document.DocumentURL, userMessage)
-            console.log(botReply);
-            
             // const botReply = await getChatResponse2(userMessage as string ,userRes[0].Occupation );
             responseMessage = botReply;
-            console.log(session);
+        //     console.log(session);
           
-        }else{
-            const botReply = await getChatResponse2(userMessage  ,userRes[0].Occupation );
-            responseMessage = botReply;
-        }
+        // }else{
+        //     const botReply = await getChatResponse2(userMessage  ,userRes[0].Occupation );
+        //     responseMessage = botReply;
+        // }
            
 
             // Store conversation
