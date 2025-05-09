@@ -97,95 +97,96 @@ const {
 const bot = new TelegramBot(process.env.TELEGRAM, { polling: true });
 const loginSteps = new Map();
 
-// /start handler to reset session
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  loginSteps.delete(chatId);
-  bot.sendMessage(chatId, "👋 Let's start again. Please enter your email.");
-});
 
 bot.on('message', async (msg) => {
-  const chatId = msg.chat.id;
-  const userMessage = msg.text?.trim();
-  const username = msg.from?.username || chatId.toString();
-
-  // Skip /start command from being handled here again
-  if (userMessage?.toLowerCase() === '/start') return;
-
-  let responseMessage = "";
-
-  try {
-    let session = loginSteps.get(chatId);
-
-    // Initialize new session
-    if (!session) {
-      responseMessage = "👋 Welcome! Please enter your email to log in.";
-      loginSteps.set(chatId, { step: 2, temp: {} });
-      await bot.sendMessage(chatId, responseMessage);
-      return;
-    }
-
-    // Step-by-step login handling
-    if (session.step === 2) {
-      session.temp.email = userMessage;
-      session.step = 3;
-      loginSteps.set(chatId, session);
-      responseMessage = "🔐 Now enter your password.";
-      await bot.sendMessage(chatId, responseMessage);
-      return;
-    }
-
-    if (session.step === 3) {
-      const { email } = session.temp;
-      const password = userMessage;
-
-      const isloginValid = await loginUserBot(email, password);
-      result = isloginValid;
-
-      if (isloginValid?.islogged) {
-        session.step = 4;
-        loginSteps.set(chatId, session);
-        responseMessage = `✅ Login successful, ${email}. You can now chat with the bot.`;
-      } else {
+    const chatId = msg.chat.id;
+    const userMessage = msg.text?.trim();
+    const username = msg.from?.username || chatId.toString();
+  
+    let responseMessage = "";
+    let result;
+  
+    try {
+      // Handle /start command inline
+      if (userMessage?.toLowerCase() === '/start') {
         loginSteps.delete(chatId);
-        responseMessage = "❌ Invalid credentials. Please enter your email again to start over.";
+        await bot.sendMessage(chatId, "👋 Let's start again. Please enter your email.");
+        loginSteps.set(chatId, { step: 2, temp: {} });
+        return;
       }
-
-      await bot.sendMessage(chatId, responseMessage);
-      return;
-    }
-
-    // Authenticated: Handle bot logic
-    if (session.step === 4) {
-      await bot.sendChatAction(chatId, 'typing');
-
-      const userRes = await getOccupation(session.temp?.email);
-
-      if (userRes && userRes[0]) {
-        const department = userRes[0].Department?.toLowerCase();
-        const occupation = userRes[0].Occupation;
-        const companyId = userRes[0].CompanyId;
-
-        if (department === "finance") {
-          const document = await getDocument(companyId);
-          const botReply = await chatWithFinanceBot(document.DocumentURL, userMessage);
-          responseMessage = botReply;
+  
+      let session = loginSteps.get(chatId);
+  
+      // If no session, start login flow
+      if (!session) {
+        responseMessage = "👋 Welcome! Please enter your email to log in.";
+        loginSteps.set(chatId, { step: 2, temp: {} });
+        await bot.sendMessage(chatId, responseMessage);
+        return;
+      }
+  
+      if (session.step === 2) {
+        session.temp.email = userMessage;
+        session.step = 3;
+        loginSteps.set(chatId, session);
+        responseMessage = "🔐 Now enter your password.";
+        await bot.sendMessage(chatId, responseMessage);
+        return;
+      }
+  
+      if (session.step === 3) {
+        const { email } = session.temp;
+        const password = userMessage;
+  
+        const isloginValid = await loginUserBot(email, password);
+        result = isloginValid;
+  
+        if (isloginValid?.islogged) {
+          session.step = 4;
+          loginSteps.set(chatId, session);
+          responseMessage = `✅ Login successful, ${email}. You can now chat with the bot.`;
         } else {
-          const botReply = await getChatResponse2(userMessage, occupation);
-          responseMessage = botReply;
+          loginSteps.delete(chatId);
+          responseMessage = "❌ Invalid credentials. Please enter your email again to start over.";
         }
-
-        // Optional: Store conversation
-        // await insertToDB(userMessage, responseMessage, "Telegram", username);
-      } else {
-        responseMessage = "⚠️ Could not retrieve your user profile.";
+  
+        await bot.sendMessage(chatId, responseMessage);
+        return;
       }
-
-      await bot.sendMessage(chatId, responseMessage);
+  
+      // Step 4: Authenticated
+      if (session.step === 4) {
+        await bot.sendChatAction(chatId, 'typing');
+  
+        const userRes = await getOccupation(session.temp?.email);
+  
+        if (userRes && userRes[0]) {
+          const department = userRes[0].Department?.toLowerCase();
+          const occupation = userRes[0].Occupation;
+          const companyId = userRes[0].CompanyId;
+  
+          if (department === "finance") {
+            const document = await getDocument(companyId);
+            const botReply = await chatWithFinanceBot(document.DocumentURL, userMessage);
+            responseMessage = botReply;
+          } else {
+            const botReply = await getChatResponse2(userMessage, occupation);
+            responseMessage = botReply;
+          }
+  
+          // Optionally store the message
+          // await insertToDB(userMessage, responseMessage, "Telegram", username);
+  
+        } else {
+          responseMessage = "⚠️ Could not retrieve your user profile.";
+        }
+  
+        await bot.sendMessage(chatId, responseMessage);
+      }
+  
+    } catch (error) {
+      console.error("Error in Telegram bot:", error);
+      await bot.sendMessage(chatId, "⚠️ Something went wrong. Please try again.");
     }
-
-  } catch (error) {
-    console.error("Error in Telegram bot:", error);
-    await bot.sendMessage(chatId, "⚠️ Something went wrong. Please try again.");
-  }
-});
+  });
+  
