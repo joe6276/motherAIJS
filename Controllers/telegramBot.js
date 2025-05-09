@@ -70,7 +70,7 @@ bot.on('message', async (msg) => {
            
 
             // Store conversation
-            await insertToDB(userMessage, responseMessage, "Telegram", username);
+            // await insertToDB(userMessage, responseMessage, "Telegram", username);
         }
 
         // Send response
