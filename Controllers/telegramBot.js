@@ -20,11 +20,14 @@ bot.on('message', async (msg) => {
             responseMessage = "👋 Welcome! Please enter your email to log in.";
             session.step = 2;
             loginSteps.set(chatId, session);
+            console.log(session);
+            
         } else if (session.step === 2) {
             session.temp.email = userMessage;
             session.step = 3;
             loginSteps.set(chatId, session);
             responseMessage = "🔐 Now enter your password.";
+            console.log(session);
         } else if (session.step === 3) {
             const { email } = session.temp;
             const password = userMessage 
@@ -33,11 +36,13 @@ bot.on('message', async (msg) => {
            const isloginValid =await loginUserBot(email, password)
             result=isloginValid
             console.log(isloginValid);
+            console.log(session);
             
             if (isloginValid.islogged) {
                 session.step = 4;
                 loginSteps.set(chatId, session);
                 responseMessage = `✅ Login successful, ${email}. You can now chat with the bot.`;
+                console.log(session);
             } else {
                 loginSteps.delete(chatId);
                 responseMessage = "❌ Invalid credentials. Please enter your email again to start over.";
@@ -56,6 +61,7 @@ bot.on('message', async (msg) => {
             
             // const botReply = await getChatResponse2(userMessage as string ,userRes[0].Occupation );
             responseMessage = botReply;
+            console.log(session);
           
         }else{
             const botReply = await getChatResponse2(userMessage  ,userRes[0].Occupation );
@@ -69,6 +75,7 @@ bot.on('message', async (msg) => {
 
         // Send response
         await bot.sendMessage(chatId, responseMessage);
+        console.log(session);
 
     } catch (error) {
         console.error("Error in Telegram bot:", error);
