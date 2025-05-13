@@ -1,8 +1,7 @@
 const express= require("express")
 const {json} = require("express")
 const cors = require('cors')
-
-// const _= require("./Controllers/telegramBot")
+const _= require("./Controllers/telegramBot")
 const { router } = require("./Routes/AiRoutes")
 const { userRouter } = require("./Routes/userRoutes")
 const { companyRouter } = require("./Routes/companyRoutes")
