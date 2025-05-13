@@ -1,6 +1,10 @@
 const dotenv =require("dotenv")
 const path = require("path")
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
+
+
+
+
 const sqlConfig = {
   user: process.env.DB_USER, 
   password: process.env.DB_PWD ,

@@ -1,7 +1,9 @@
 const bcrypt = require("bcrypt")
 const dotenv =require("dotenv")
 const  path= require("path")
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+const mssql= require('mssql')
+const jwt = require('jsonwebtoken')
+dotenv.config({ path: path.resolve(__dirname, '../.env') })
 const {sqlConfig} =require("../Config")
 async function createAdmin(req,res){
     try{
@@ -90,6 +92,8 @@ async function loginUser(req, res){
        
        
     } catch (error) {
+        console.log(error);
+        
         return res.status(500).json(error)
     }
 }

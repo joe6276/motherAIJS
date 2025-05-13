@@ -297,9 +297,10 @@ async function sendandReply(req, res) {
     const from = req.body.From;
     const to = req.body.To;
     const message = req.body.Body?.trim();
-    
+    console.log('Body', req.body);
     const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
-
+        console.log(client);
+        
     let myemail='';
     let responseMessage = "";
 
