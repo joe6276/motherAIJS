@@ -18,6 +18,9 @@ const loginSteps = new Map();
 
 
 bot.on('message', async (msg) => {
+
+  if (!msg.text) return;
+
     const chatId = msg.chat.id;
     const userMessage = msg.text?.trim();
     const username = msg.from?.username || chatId.toString();
