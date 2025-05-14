@@ -3,6 +3,9 @@ const {v4} = require("uuid")
 const mssql = require("mssql")
 const {sqlConfig}= require("../Config")
 
+const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
+const containerName = process.env.AZURE_BLOB_CONTAINER_NAME;
+
 
  async function addFile(req, res){
     try {
