@@ -13,6 +13,9 @@ const { ChatOpenAI }=require("@langchain/openai")
 const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
 
+const { BlobServiceClient } = require("@azure/storage-blob");
+
+
 
 
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
@@ -304,11 +307,6 @@ async function getDocument(companyId){
 
 
 const loginSteps = new Map();
-
-const axios = require('axios');
-const path = require('path');
-
-const { BlobServiceClient } = require("@azure/storage-blob");
 
 
 async function uploadToAzure(buffer, filename, contentType) {
