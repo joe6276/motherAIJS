@@ -320,7 +320,7 @@ async function uploadToAzure(buffer, filename, contentType) {
   await blockBlobClient.uploadData(buffer, {
     blobHTTPHeaders: { blobContentType: contentType }
   });
-  console.log( blockBlobClient.url);
+//   console.log( blockBlobClient.url);
   return blockBlobClient.url;
 
  
@@ -380,9 +380,18 @@ async function sendandReply(req, res) {
             Authorization: `Basic ${Buffer.from(process.env.ACCOUNT_SID + ':' + process.env.AUTH_TOKEN).toString('base64')}`,
           },
         })).data;
-      
+        
+        const { CompanyId, Department } = userres[0];
         // Upload to Azure Blob Storage
         const uploadedUrl = await uploadToAzure(mediaBuffer, filename, contentType);
+
+        const pool = await mssql.connect(sqlConfig)
+                        await pool.request()
+                        .input("CompanyId", CompanyId)
+                        .input("Department", Department)
+                        .input("DocumentURL", uploadedUrl)
+                        .execute("addDocument")
+
         responseMessage = `✅ File uploaded to Azure successfully: ${uploadedUrl}`;
       }
        else {
