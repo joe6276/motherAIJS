@@ -2,6 +2,8 @@
 const dotenv = require('dotenv');
 const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+const { BlobServiceClient } = require('@azure/storage-blob');
+const { v4: uuidv4 } = require('uuid');
 
 const TelegramBot = require('node-telegram-bot-api');
 const {
@@ -15,6 +17,9 @@ const {
 
 const bot = new TelegramBot(process.env.TELEGRAM, { polling: true });
 const loginSteps = new Map();
+const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
+const containerName = process.env.AZURE_BLOB_CONTAINER_NAME;
+
 
 
 bot.on('message', async (msg) => {
@@ -151,10 +156,26 @@ bot.on('document', async (msg)=>{
     const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
 
 
-    console.log(response);
+    const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    await containerClient.createIfNotExists({ access: "blob" });
+
+    const blobName = `${uuidv4()}-${fileName}`;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    await blockBlobClient.uploadData(response.data, {
+      blobHTTPHeaders: { blobContentType: mimeType },
+    });
+
+    const documentUrl = blockBlobClient.url;
     
+    console.log("The URL");
+    console.log(documentUrl);
+    
+    await bot.sendMessage(chatId, `✅ File uploaded and saved!\n📎 URL: ${documentUrl}`);
 
   }catch(error){
-
+    console.error(error);
+    
   }
 })
