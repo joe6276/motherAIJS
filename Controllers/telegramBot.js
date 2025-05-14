@@ -94,7 +94,7 @@ bot.on('message', async (msg) => {
           }
   
           // Optionally store the message
-
+          await insertToDB(userMessage , responseMessage, "Telegram", username);
   
         } else {
           responseMessage = "⚠️ Could not retrieve your user profile.";
