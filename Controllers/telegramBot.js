@@ -4,7 +4,7 @@ const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 const { BlobServiceClient } = require('@azure/storage-blob');
 const { v4: uuidv4 } = require('uuid');
-
+const axios= require('axios')
 const TelegramBot = require('node-telegram-bot-api');
 const {
   chatWithFinanceBot,
