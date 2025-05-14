@@ -12,8 +12,11 @@ const { FaissStore }=require("@langchain/community/vectorstores/faiss")
 const { ChatOpenAI }=require("@langchain/openai")
 const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
+const axios = require("axios");
 
 
+const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
+const containerName = process.env.AZURE_BLOB_CONTAINER_NAME;
 
 async function chatWithFinanceBot(fileUrls, query) {
     const openAIApiKey = API_KEy
@@ -302,76 +305,184 @@ async function getDocument(companyId){
 
 const loginSteps = new Map();
 
-async function sendandReply(req, res) {
-    const from = req.body.From;
-    const to = req.body.To;
-    const message = req.body.Body?.trim();
-    console.log('Body', req.body);
-    const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
-        console.log(client);
-        
-    let myemail='';
-    let responseMessage = "";
+const axios = require('axios');
+const path = require('path');
 
-    try {
-        const session = loginSteps.get(from) || { step: 1, temp: {} };
+const { BlobServiceClient } = require("@azure/storage-blob");
 
-        if (session.step === 1) {
-            responseMessage = "Welcome! Please enter your email to log in.";
-            session.step = 2;
-            loginSteps.set(from, session);
-        } else if (session.step === 2) {
-            session.temp.email = message;
-            session.step = 3;
-            loginSteps.set(from, session);
-            responseMessage = "Thank you. Now, please enter your password.";
-        } else if (session.step === 3) {
-            const { email } = session.temp;
-            const password = message;
 
-            const isLoginValid= await loginUserBot(email,password)
-            myemail=email
-            
-            if (isLoginValid) {
-                loginSteps.set(from, { step: 4, temp: { email } });
-                responseMessage = `✅ Login successful. Welcome ${email}! You can now chat with the bot.`;
-            } else {
-                loginSteps.delete(from);
-                responseMessage = "❌ Invalid credentials. Please start again by typing your email.";
-            }
-        } else {
-            // Step 4: Already authenticated
+async function uploadToAzure(buffer, filename, contentType) {
+  const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+
+
+  const containerClient = blobServiceClient.getContainerClient(containerName);
+  await containerClient.createIfNotExists();
+
+  const blockBlobClient = containerClient.getBlockBlobClient(filename);
+  await blockBlobClient.uploadData(buffer, {
+    blobHTTPHeaders: { blobContentType: contentType }
+  });
+  console.log( blockBlobClient.url);
+  return blockBlobClient.url;
+
+ 
   
-            const userres = await getOccupation(session.temp?.email)
+}
 
-            
-                if(userres[0].Department.toLowerCase() === "Finance".toLowerCase()){
-                    const document = await getDocument(userres[0].CompanyId)
-                    responseMessage = await chatWithFinanceBot(document, message)
 
-              
-                }else{
-                    const response = await getChatResponse1(message, from,   userres[0].Occupation );
-                    responseMessage = response;
-                }
+async function sendandReply(req, res) {
+  const from = req.body.From;
+  const to = req.body.To;
+  const message = req.body.Body?.trim();
+  const mediaCount = parseInt(req.body.NumMedia || '0');
+  const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 
-                console.log('The response',responseMessage);
+  let responseMessage = "";
+
+  try {
+    const session = loginSteps.get(from) || { step: 1, temp: {} };
+
+    if (session.step === 1) {
+      responseMessage = "Welcome! Please enter your email to log in.";
+      session.step = 2;
+      loginSteps.set(from, session);
+    } else if (session.step === 2) {
+      session.temp.email = message;
+      session.step = 3;
+      loginSteps.set(from, session);
+      responseMessage = "Thank you. Now, please enter your password.";
+    } else if (session.step === 3) {
+      const { email } = session.temp;
+      const password = message;
+
+      const isLoginValid = await loginUserBot(email, password);
+      if (isLoginValid) {
+        loginSteps.set(from, { step: 4, temp: { email } });
+        responseMessage = `✅ Login successful. Welcome ${email}! You can now chat with the bot.`;
+      } else {
+        loginSteps.delete(from);
+        responseMessage = "❌ Invalid credentials. Please start again by typing your email.";
+      }
+    } else {
+      // Step 4: Authenticated
+      const userres = await getOccupation(session.temp?.email);
+
+      if (mediaCount > 0) {
+        const mediaUrl = req.body.MediaUrl0;
+        const contentType = req.body.MediaContentType0;
+      
+        // Get file extension
+        const extension = contentType.split('/')[1];
+        const filename = `whatsapp-upload-${Date.now()}.${extension}`;
+      
+        // Download file from Twilio
+        const mediaBuffer = (await axios.get(mediaUrl, {
+          responseType: 'arraybuffer',
+          headers: {
+            Authorization: `Basic ${Buffer.from(process.env.ACCOUNT_SID + ':' + process.env.AUTH_TOKEN).toString('base64')}`,
+          },
+        })).data;
+      
+        // Upload to Azure Blob Storage
+        const uploadedUrl = await uploadToAzure(mediaBuffer, filename, contentType);
+        responseMessage = `✅ File uploaded to Azure successfully: ${uploadedUrl}`;
+      }
+       else {
+        // Continue with normal chat flow
+        if (userres[0].Department.toLowerCase() === "finance") {
+          const document = await getDocument(userres[0].CompanyId);
+          responseMessage = await chatWithFinanceBot(document, message);
+        } else {
+          responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
         }
-        console.log('The response',responseMessage);
-        await client.messages.create({
-            from: to,
-            to: from,
-            body: responseMessage
-        });
-
-        await insertToDB(message, responseMessage, "Whatsapp", from);
-        console.log(`Replied to ${from}`);
-    } catch (err) {
-        console.error("Error:", err);
+      }
     }
 
-    res.send("<Response></Response>");
+    await client.messages.create({
+      from: to,
+      to: from,
+      body: responseMessage
+    });
+
+    await insertToDB(message, responseMessage, "Whatsapp", from);
+  } catch (err) {
+    console.error("Error:", err);
+  }
+
+  res.send("<Response></Response>");
 }
+
+
+// async function sendandReply(req, res) {
+//     const from = req.body.From;
+//     const to = req.body.To;
+//     const message = req.body.Body?.trim();
+//     console.log('Body', req.body);
+//     const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
+//         console.log(client);
+        
+//     let myemail='';
+//     let responseMessage = "";
+
+//     try {
+//         const session = loginSteps.get(from) || { step: 1, temp: {} };
+
+//         if (session.step === 1) {
+//             responseMessage = "Welcome! Please enter your email to log in.";
+//             session.step = 2;
+//             loginSteps.set(from, session);
+//         } else if (session.step === 2) {
+//             session.temp.email = message;
+//             session.step = 3;
+//             loginSteps.set(from, session);
+//             responseMessage = "Thank you. Now, please enter your password.";
+//         } else if (session.step === 3) {
+//             const { email } = session.temp;
+//             const password = message;
+
+//             const isLoginValid= await loginUserBot(email,password)
+//             myemail=email
+            
+//             if (isLoginValid) {
+//                 loginSteps.set(from, { step: 4, temp: { email } });
+//                 responseMessage = `✅ Login successful. Welcome ${email}! You can now chat with the bot.`;
+//             } else {
+//                 loginSteps.delete(from);
+//                 responseMessage = "❌ Invalid credentials. Please start again by typing your email.";
+//             }
+//         } else {
+//             // Step 4: Already authenticated
+  
+//             const userres = await getOccupation(session.temp?.email)
+
+            
+//                 if(userres[0].Department.toLowerCase() === "Finance".toLowerCase()){
+//                     const document = await getDocument(userres[0].CompanyId)
+//                     responseMessage = await chatWithFinanceBot(document, message)
+
+              
+//                 }else{
+//                     const response = await getChatResponse1(message, from,   userres[0].Occupation );
+//                     responseMessage = response;
+//                 }
+
+//                 console.log('The response',responseMessage);
+//         }
+//         console.log('The response',responseMessage);
+//         await client.messages.create({
+//             from: to,
+//             to: from,
+//             body: responseMessage
+//         });
+
+//         await insertToDB(message, responseMessage, "Whatsapp", from);
+//         console.log(`Replied to ${from}`);
+//     } catch (err) {
+//         console.error("Error:", err);
+//     }
+
+//     res.send("<Response></Response>");
+// }
 
 
 module.exports={
