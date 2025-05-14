@@ -15,12 +15,15 @@ const xlsx = require('xlsx')
 
 
 
-async function chatWithFinanceBot(fileUrl, query) {
+async function chatWithFinanceBot(fileUrls, query) {
     const openAIApiKey = API_KEy
-    const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
-    const data = response.data;
+    const allTexts = [];
 
-  // 2. Parse the workbook
+for (const fileUrl of fileUrls) {
+  const response = await axios.get(fileUrl.DocumentURL, { responseType: 'arraybuffer' });
+  const data = response.data;
+
+  // Parse the workbook
   const workbook = xlsx.read(data, { type: 'buffer' });
   const sheetNames = workbook.SheetNames;
 
@@ -29,13 +32,15 @@ async function chatWithFinanceBot(fileUrl, query) {
   sheetNames.forEach(sheetName => {
     const sheet = workbook.Sheets[sheetName];
     const rows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
-    raw_text += `\n=== Sheet: ${sheetName} ===\n`;
+    raw_text += `\n=== Sheet: ${sheetName} from ${fileUrl.DocumentURL} ===\n`;
     rows.forEach((row) => {
       raw_text += row.join(" ") + "\n";
     });
   });
 
-  // 3. Split text
+  console.log(raw_text);
+  
+  // Split text
   const textSplitter = new CharacterTextSplitter({
     separator: "\n",
     chunkSize: 1000,
@@ -44,12 +49,16 @@ async function chatWithFinanceBot(fileUrl, query) {
   });
 
   const texts = await textSplitter.splitText(raw_text);
-console.log(texts);
+  allTexts.push(...texts);
+}
+console.log(allTexts);
 
- 
-  // 4. Generate embeddings
-  const documentSearch = await FaissStore.fromTexts(texts, {}, new OpenAIEmbeddings({ openAIApiKey }));
-
+// Generate embeddings from all text chunks
+const documentSearch = await FaissStore.fromTexts(
+  allTexts,
+  {},
+  new OpenAIEmbeddings({ openAIApiKey })
+);
   // 5. Perform search
 
   const resultOne = await documentSearch.similaritySearch(query, 1);
@@ -287,7 +296,7 @@ async function getDocument(companyId){
     .input("Department", "Finance")
     .execute("GetDocuments")).recordset  
 
-    return document[0] 
+    return document
 }
 
 
@@ -338,7 +347,7 @@ async function sendandReply(req, res) {
             
                 if(userres[0].Department.toLowerCase() === "Finance".toLowerCase()){
                     const document = await getDocument(userres[0].CompanyId)
-                    responseMessage = await chatWithFinanceBot(document.DocumentURL, message)
+                    responseMessage = await chatWithFinanceBot(document, message)
 
               
                 }else{

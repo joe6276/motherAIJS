@@ -98,7 +98,7 @@ bot.on('message', async (msg) => {
   
           if (department === "finance") {
             const document = await getDocument(companyId);
-            const botReply = await chatWithFinanceBot(document.DocumentURL, userMessage);
+            const botReply = await chatWithFinanceBot(document, userMessage);
             responseMessage = botReply;
           } else {
             const botReply = await getChatResponse2(userMessage, occupation);
