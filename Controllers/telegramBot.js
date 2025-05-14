@@ -15,6 +15,10 @@ const {
   loginUserBot
 } = require('./AIController');
 const mssql= require("mssql")
+const {sqlConfig} = require('../Config')
+
+
+
 const bot = new TelegramBot(process.env.TELEGRAM, { polling: true });
 const loginSteps = new Map();
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
