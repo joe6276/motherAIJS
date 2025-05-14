@@ -12,7 +12,7 @@ const { FaissStore }=require("@langchain/community/vectorstores/faiss")
 const { ChatOpenAI }=require("@langchain/openai")
 const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
-const axios = require("axios");
+
 
 
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
