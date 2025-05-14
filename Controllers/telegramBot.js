@@ -14,7 +14,7 @@ const {
   insertToDB,
   loginUserBot
 } = require('./AIController');
-
+const mssql= require("mssql")
 const bot = new TelegramBot(process.env.TELEGRAM, { polling: true });
 const loginSteps = new Map();
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
@@ -31,7 +31,7 @@ bot.on('message', async (msg) => {
     const username = msg.from?.username || chatId.toString();
   
     let responseMessage = "";
-    let result;
+  
   
     try {
       // Handle /start command inline
@@ -125,13 +125,6 @@ bot.on('document', async (msg)=>{
   const fileName = msg.document.file_name;
   const mimeType = msg.document.mime_type;
 
-
-  console.log(chatId);
-  console.log(fileId);
-  console.log(fileName);
-  console.log(mimeType);
-
-
   const session = loginSteps.get(chatId);
   if (!session || !session.temp?.email) {
     await bot.sendMessage(chatId, "❌ You must log in first using /start.");
@@ -142,7 +135,6 @@ bot.on('document', async (msg)=>{
 
   try{
     const email = session.temp.email;
-    console.log(email);
     const userInfo = await getOccupation(email);
 
     if (!userInfo || !userInfo[0]) {
@@ -168,6 +160,13 @@ bot.on('document', async (msg)=>{
     });
 
     const documentUrl = blockBlobClient.url;
+
+    const pool = await mssql.connect(sqlConfig)
+                 await pool.request()
+                .input("CompanyId", CompanyId)
+                .input("Department", Department)
+                .input("DocumentURL", documentUrl)
+                .execute("addDocument")
     
     console.log("The URL");
     console.log(documentUrl);
@@ -175,7 +174,8 @@ bot.on('document', async (msg)=>{
     await bot.sendMessage(chatId, `✅ File uploaded and saved!\n📎 URL: ${documentUrl}`);
 
   }catch(error){
-    console.error(error);
+    console.error("Upload failed:", error.message);
+    await bot.sendMessage(chatId, "⚠️ File upload failed.");
     
   }
 })
