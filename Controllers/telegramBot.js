@@ -109,3 +109,49 @@ bot.on('message', async (msg) => {
     }
   });
   
+
+
+bot.on('document', async (msg)=>{
+  const chatId = msg.chat.id;
+  const fileId = msg.document.file_id;
+  const fileName = msg.document.file_name;
+  const mimeType = msg.document.mime_type;
+
+
+  console.log(chatId);
+  console.log(fileId);
+  console.log(fileName);
+  console.log(mimeType);
+
+
+  const session = loginSteps.get(chatId);
+  if (!session || !session.temp?.email) {
+    await bot.sendMessage(chatId, "❌ You must log in first using /start.");
+    return;
+  }
+
+  //the user is Logged In
+
+  try{
+    const email = session.temp.email;
+    console.log(email);
+    const userInfo = await getOccupation(email);
+
+    if (!userInfo || !userInfo[0]) {
+      await bot.sendMessage(chatId, "⚠️ Could not retrieve your user profile.");
+      return;
+    }
+    console.log(userInfo);
+    const { CompanyId, Department } = userInfo[0];
+    const file = await bot.getFile(fileId);
+    const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM}/${file.file_path}`;
+    const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+
+
+    console.log(response);
+    
+
+  }catch(error){
+
+  }
+})
