@@ -145,8 +145,7 @@ async function getChatResponse2(message,occupation) {
         You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}, Don't answer any questions outside ${occupation}
     `}]
 
-    console.log(messages);
-
+   
 
  history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
@@ -160,6 +159,7 @@ async function getChatResponse2(message,occupation) {
 
     messages.push({ role: "user", content: message })
 
+    console.log(messages);
 
     const response = await fetch(API_URL, {
         method: "POST",
