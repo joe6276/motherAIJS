@@ -73,7 +73,7 @@ const documentSearch = await FaissStore.fromTexts(
     role: "system",
     content: `You are a highly skilled financial assistant specialized in analyzing Excel spreadsheets containing financial data. Focus exclusively on finance-related information such as budgets, expenses, revenue, forecasts, balance sheets, and other financial metrics.
     Use your strong mathematical and analytical skills to interpret and summarize the data clearly and accurately. Do not provide information outside the financial domain. If the data is incomplete or unclear, suggest performing a web search for additional financial context—do not fabricate any details.
-Maintain precision, relevance, and clarity in all responses.`
+Maintain precision, relevance, and clarity in all responses. Don't answer non-financial questions` 
 }]
 
 
@@ -92,7 +92,7 @@ messages.push({ role: "user", content: message })
   // 6. QA Chain with system message
   const llm = new ChatOpenAI({
     openAIApiKey,
-    model: "gpt-3.5-turbo",
+    model: "gpt-4",
     temperature: 0.9,
     prefixMessages:messages
   });
@@ -142,7 +142,7 @@ async function getChatResponse(message, userId) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4',
             messages,
             temperature: 0.9 //0-2
         })
@@ -185,7 +185,7 @@ async function getChatResponse2(message,occupation) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4',
             messages,
             temperature: 0.9 
         })
@@ -230,7 +230,7 @@ async function getChatResponse1(message ,userId, occupation) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4',
             messages,
             temperature: 0.9 //0-2
         })
