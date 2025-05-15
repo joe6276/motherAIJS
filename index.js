@@ -25,7 +25,7 @@ app.use("/test", (req,res)=>{
     })
 
 const port = process.env.PORT || 80;
-app.listen(3000,()=>{
+app.listen(port,()=>{
     console.log("App Running...");
     
 })
