@@ -192,7 +192,7 @@ async function getChatResponse1(message ,userId, occupation) {
     const messages = [{
         role: 'system', content: `
         You an Experienced Marketter with alot of experience in the field .You work is to answer any marketing question asked in a simple way.
-      also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}
+      also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}, Kindly short form the answer.
     `}]
 
     console.log(messages);
