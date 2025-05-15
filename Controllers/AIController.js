@@ -21,7 +21,7 @@ const { BlobServiceClient } = require("@azure/storage-blob");
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
 const containerName = process.env.AZURE_BLOB_CONTAINER_NAME;
 
-async function chatWithFinanceBot(fileUrls, query) {
+async function chatWithFinanceBot(fileUrls, query,userId) {
     const openAIApiKey = API_KEy
     const allTexts = [];
 
@@ -69,19 +69,32 @@ const documentSearch = await FaissStore.fromTexts(
 
   const resultOne = await documentSearch.similaritySearch(query, 1);
 
+  const messages= [{
+    role: "system",
+    content: `You are a highly skilled financial assistant specialized in analyzing Excel spreadsheets containing financial data. Focus exclusively on finance-related information such as budgets, expenses, revenue, forecasts, balance sheets, and other financial metrics.
+    Use your strong mathematical and analytical skills to interpret and summarize the data clearly and accurately. Do not provide information outside the financial domain. If the data is incomplete or unclear, suggest performing a web search for additional financial context—do not fabricate any details.
+Maintain precision, relevance, and clarity in all responses.`
+}]
+
+
+const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+
+if (history.length) {
+    history.forEach(element => {
+        messages.push({ role: "user", content: element.originalCommand })
+        messages.push({ role: "assistant", content: element.output })
+
+    });
+}
+
+messages.push({ role: "user", content: message })
+
   // 6. QA Chain with system message
   const llm = new ChatOpenAI({
     openAIApiKey,
     model: "gpt-3.5-turbo",
     temperature: 0.9,
-    prefixMessages: [
-      {
-        role: "system",
-        content: `You are a highly skilled financial assistant specialized in analyzing Excel spreadsheets containing financial data. Focus exclusively on finance-related information such as budgets, expenses, revenue, forecasts, balance sheets, and other financial metrics.
-        Use your strong mathematical and analytical skills to interpret and summarize the data clearly and accurately. Do not provide information outside the financial domain. If the data is incomplete or unclear, suggest performing a web search for additional financial context—do not fabricate any details.
-    Maintain precision, relevance, and clarity in all responses.`
-      }
-    ]
+    prefixMessages:messages
   });
 
   const chain = loadQAStuffChain(llm);
@@ -105,6 +118,7 @@ async function getChatResponse(message, userId) {
     const messages= [{
         role: 'system', content: `
         You an Experienced Assistant Kindly advise based on User profession which is ${occupation[0].Occupation}
+        Don't answer any questions outside ${occupation[0].Occupation} 
     `}]
 
 
@@ -145,21 +159,21 @@ async function getChatResponse2(message,occupation) {
     
     const messages = [{
         role: 'system', content: `
-        You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}
+        You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}, Don't answer any questions outside ${occupation}
     `}]
 
     console.log(messages);
 
 
-//  history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+ history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
-//     if (history.length) {
-//         history.forEach(element => {
-//             messages.push({ role: "user", content: element.originalCommand })
-//             messages.push({ role: "assistant", content: element.output })
+    if (history.length) {
+        history.forEach(element => {
+            messages.push({ role: "user", content: element.originalCommand })
+            messages.push({ role: "assistant", content: element.output })
 
-//         });
-//     }
+        });
+    }
 
     messages.push({ role: "user", content: message })
 
@@ -173,7 +187,7 @@ async function getChatResponse2(message,occupation) {
         body: JSON.stringify({
             model: 'gpt-3.5-turbo',
             messages,
-            temperature: 0.9 //0-2
+            temperature: 0.9 
         })
 
 
@@ -190,7 +204,7 @@ async function getChatResponse1(message ,userId, occupation) {
     const messages = [{
         role: 'system', content: `
         You an Experienced Marketter with alot of experience in the field .You work is to answer any marketing question asked in a simple way.
-      also Kindly advise based on User profession which is ${occupation}
+      also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}
     `}]
 
     console.log(messages);
@@ -398,9 +412,9 @@ async function sendandReply(req, res) {
         // Continue with normal chat flow
         if (userres[0].Department.toLowerCase() === "finance") {
           const document = await getDocument(userres[0].CompanyId);
-          responseMessage = await chatWithFinanceBot(document, message);
+          responseMessage = await chatWithFinanceBot(document, message,userres[0].Id);
         } else {
-          responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
+          responseMessage = await getChatResponse1(message, from, userres[0].Occupation,userres[0].Id);
         }
       }
     }

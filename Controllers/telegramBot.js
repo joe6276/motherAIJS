@@ -98,10 +98,10 @@ bot.on('message', async (msg) => {
   
           if (department === "finance") {
             const document = await getDocument(companyId);
-            const botReply = await chatWithFinanceBot(document, userMessage);
+            const botReply = await chatWithFinanceBot(document, userMessage,userRes[0].Id);
             responseMessage = botReply;
           } else {
-            const botReply = await getChatResponse2(userMessage, occupation);
+            const botReply = await getChatResponse2(userMessage, occupation, userRes[0].Id);
             responseMessage = botReply;
           }
   
