@@ -137,7 +137,7 @@ async function getChatResponse(message, userId) {
 }
 
 
-async function getChatResponse2(message,occupation) {
+async function getChatResponse2(message,occupation,userId) {
     console.log(message,userId,occupation);
     
     const pool = await mssql.connect(sqlConfig)
@@ -402,7 +402,7 @@ async function sendandReply(req, res) {
           const document = await getDocument(userres[0].CompanyId);
           responseMessage = await chatWithFinanceBot(document, message,userres[0].Id);
         } else {
-          responseMessage = await getChatResponse1(message, from, userres[0].Occupation,userres[0].Id);
+          responseMessage = await getChatResponse1(message, userres[0].Id, userres[0].Occupation);
         }
       }
     }
