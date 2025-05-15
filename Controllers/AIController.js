@@ -98,24 +98,24 @@ async function getChatResponse(message, userId) {
     const pool = await mssql.connect(sqlConfig)
     const occupation = await (await pool.request().input("Id", userId).execute("getUserById")).recordset
 
-    // const messages= [{
-    //     role: 'system', content: `
-    //     You an Experienced Assistant Kindly advise based on User profession which is ${occupation[0].Occupation}
-    //     Don't answer any questions outside ${occupation[0].Occupation} 
-    // `}]
+    const messages= [{
+        role: 'system', content: `
+        You an Experienced Assistant Kindly advise based on User profession which is ${occupation[0].Occupation}
+        Don't answer any questions outside ${occupation[0].Occupation} 
+    `}]
 
 
-    // const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+    const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
-    // if (history.length) {
-    //     history.forEach(element => {
-    //         messages.push({ role: "user", content: element.originalCommand })
-    //         messages.push({ role: "assistant", content: element.output })
+    if (history.length) {
+        history.forEach(element => {
+            messages.push({ role: "user", content: element.originalCommand })
+            messages.push({ role: "assistant", content: element.output })
 
-    //     });
-    // }
+        });
+    }
 
-    // messages.push({ role: "user", content: message })
+    messages.push({ role: "user", content: message })
 
 
     const response = await fetch(API_URL, {
@@ -126,6 +126,7 @@ async function getChatResponse(message, userId) {
         },
         body: JSON.stringify({
             model: 'gpt-4', 
+            messages,
             temperature: 0.9 //0-2
         })
 
@@ -137,27 +138,27 @@ async function getChatResponse(message, userId) {
 
 
 async function getChatResponse2(message,occupation) {
-    // const pool = await mssql.connect(sqlConfig)
+    const pool = await mssql.connect(sqlConfig)
     
-//     const messages = [{
-//         role: 'system', content: `
-//         You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}, Don't answer any questions outside ${occupation}
-//     `}]
+    const messages = [{
+        role: 'system', content: `
+        You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}, Don't answer any questions outside ${occupation}
+    `}]
 
-//     console.log(messages);
+    console.log(messages);
 
 
-//  history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+ history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
-//     if (history.length) {
-//         history.forEach(element => {
-//             messages.push({ role: "user", content: element.originalCommand })
-//             messages.push({ role: "assistant", content: element.output })
+    if (history.length) {
+        history.forEach(element => {
+            messages.push({ role: "user", content: element.originalCommand })
+            messages.push({ role: "assistant", content: element.output })
 
-//         });
-//     }
+        });
+    }
 
-//     messages.push({ role: "user", content: message })
+    messages.push({ role: "user", content: message })
 
 
     const response = await fetch(API_URL, {
@@ -168,6 +169,7 @@ async function getChatResponse2(message,occupation) {
         },
         body: JSON.stringify({
             model: 'gpt-4',
+            messages,
             temperature: 0.9 
         })
 
@@ -182,26 +184,26 @@ async function getChatResponse2(message,occupation) {
 async function getChatResponse1(message ,userId, occupation) {
     const pool = await mssql.connect(sqlConfig)
   
-    // const messages = [{
-    //     role: 'system', content: `
-    //     You an Experienced Marketter with alot of experience in the field .You work is to answer any marketing question asked in a simple way.
-    //   also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}
-    // `}]
+    const messages = [{
+        role: 'system', content: `
+        You an Experienced Marketter with alot of experience in the field .You work is to answer any marketing question asked in a simple way.
+      also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}
+    `}]
 
-    // console.log(messages);
+    console.log(messages);
 
 
-    // const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+    const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
-    // if (history.length) {
-    //     history.forEach(element => {
-    //         messages.push({ role: "user", content: element.originalCommand })
-    //         messages.push({ role: "assistant", content: element.output })
+    if (history.length) {
+        history.forEach(element => {
+            messages.push({ role: "user", content: element.originalCommand })
+            messages.push({ role: "assistant", content: element.output })
 
-    //     });
-    // }
+        });
+    }
 
-    // messages.push({ role: "user", content: message })
+    messages.push({ role: "user", content: message })
 
 
     const response = await fetch(API_URL, {
@@ -212,7 +214,7 @@ async function getChatResponse1(message ,userId, occupation) {
         },
         body: JSON.stringify({
             model: 'gpt-4',
-          
+            messages,
             temperature: 0.9 //0-2
         })
 
