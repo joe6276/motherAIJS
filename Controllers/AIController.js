@@ -13,6 +13,7 @@ const { ChatOpenAI }=require("@langchain/openai")
 const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
 
+const {AIMessage,SystemMessage,HumanMessage}  = require("@langchain/core/messages") 
 const { BlobServiceClient } = require("@azure/storage-blob");
 
 
@@ -69,32 +70,14 @@ const documentSearch = await FaissStore.fromTexts(
 
   const resultOne = await documentSearch.similaritySearch(query, 1);
 
-  const messages= [{
-    role: "system",
-    content: `You are a highly skilled financial assistant specialized in analyzing Excel spreadsheets containing financial data. Focus exclusively on finance-related information such as budgets, expenses, revenue, forecasts, balance sheets, and other financial metrics.
-    Use your strong mathematical and analytical skills to interpret and summarize the data clearly and accurately. Do not provide information outside the financial domain. If the data is incomplete or unclear, suggest performing a web search for additional financial context—do not fabricate any details.
-Maintain precision, relevance, and clarity in all responses. Don't answer non-financial questions` 
-}]
 
-
-const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
-
-if (history.length) {
-    history.forEach(element => {
-        messages.push({ role: "user", content: element.originalCommand })
-        messages.push({ role: "assistant", content: element.output })
-
-    });
-}
-
-messages.push({ role: "user", content: message })
 
   // 6. QA Chain with system message
   const llm = new ChatOpenAI({
     openAIApiKey,
     model: "gpt-4",
     temperature: 0.9,
-    prefixMessages:messages
+ 
   });
 
   const chain = loadQAStuffChain(llm);
@@ -115,24 +98,24 @@ async function getChatResponse(message, userId) {
     const pool = await mssql.connect(sqlConfig)
     const occupation = await (await pool.request().input("Id", userId).execute("getUserById")).recordset
 
-    const messages= [{
-        role: 'system', content: `
-        You an Experienced Assistant Kindly advise based on User profession which is ${occupation[0].Occupation}
-        Don't answer any questions outside ${occupation[0].Occupation} 
-    `}]
+    // const messages= [{
+    //     role: 'system', content: `
+    //     You an Experienced Assistant Kindly advise based on User profession which is ${occupation[0].Occupation}
+    //     Don't answer any questions outside ${occupation[0].Occupation} 
+    // `}]
 
 
-    const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+    // const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
-    if (history.length) {
-        history.forEach(element => {
-            messages.push({ role: "user", content: element.originalCommand })
-            messages.push({ role: "assistant", content: element.output })
+    // if (history.length) {
+    //     history.forEach(element => {
+    //         messages.push({ role: "user", content: element.originalCommand })
+    //         messages.push({ role: "assistant", content: element.output })
 
-        });
-    }
+    //     });
+    // }
 
-    messages.push({ role: "user", content: message })
+    // messages.push({ role: "user", content: message })
 
 
     const response = await fetch(API_URL, {
@@ -142,8 +125,7 @@ async function getChatResponse(message, userId) {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            model: 'gpt-4',
-            messages,
+            model: 'gpt-4', 
             temperature: 0.9 //0-2
         })
 
@@ -157,25 +139,25 @@ async function getChatResponse(message, userId) {
 async function getChatResponse2(message,occupation) {
     // const pool = await mssql.connect(sqlConfig)
     
-    const messages = [{
-        role: 'system', content: `
-        You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}, Don't answer any questions outside ${occupation}
-    `}]
+//     const messages = [{
+//         role: 'system', content: `
+//         You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}, Don't answer any questions outside ${occupation}
+//     `}]
 
-    console.log(messages);
+//     console.log(messages);
 
 
- history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+//  history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
-    if (history.length) {
-        history.forEach(element => {
-            messages.push({ role: "user", content: element.originalCommand })
-            messages.push({ role: "assistant", content: element.output })
+//     if (history.length) {
+//         history.forEach(element => {
+//             messages.push({ role: "user", content: element.originalCommand })
+//             messages.push({ role: "assistant", content: element.output })
 
-        });
-    }
+//         });
+//     }
 
-    messages.push({ role: "user", content: message })
+//     messages.push({ role: "user", content: message })
 
 
     const response = await fetch(API_URL, {
@@ -186,7 +168,6 @@ async function getChatResponse2(message,occupation) {
         },
         body: JSON.stringify({
             model: 'gpt-4',
-            messages,
             temperature: 0.9 
         })
 
@@ -201,26 +182,26 @@ async function getChatResponse2(message,occupation) {
 async function getChatResponse1(message ,userId, occupation) {
     const pool = await mssql.connect(sqlConfig)
   
-    const messages = [{
-        role: 'system', content: `
-        You an Experienced Marketter with alot of experience in the field .You work is to answer any marketing question asked in a simple way.
-      also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}
-    `}]
+    // const messages = [{
+    //     role: 'system', content: `
+    //     You an Experienced Marketter with alot of experience in the field .You work is to answer any marketing question asked in a simple way.
+    //   also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}
+    // `}]
 
-    console.log(messages);
+    // console.log(messages);
 
 
-    const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+    // const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
 
-    if (history.length) {
-        history.forEach(element => {
-            messages.push({ role: "user", content: element.originalCommand })
-            messages.push({ role: "assistant", content: element.output })
+    // if (history.length) {
+    //     history.forEach(element => {
+    //         messages.push({ role: "user", content: element.originalCommand })
+    //         messages.push({ role: "assistant", content: element.output })
 
-        });
-    }
+    //     });
+    // }
 
-    messages.push({ role: "user", content: message })
+    // messages.push({ role: "user", content: message })
 
 
     const response = await fetch(API_URL, {
@@ -231,7 +212,7 @@ async function getChatResponse1(message ,userId, occupation) {
         },
         body: JSON.stringify({
             model: 'gpt-4',
-            messages,
+          
             temperature: 0.9 //0-2
         })
 
