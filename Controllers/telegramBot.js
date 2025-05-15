@@ -107,7 +107,7 @@ bot.on('message', async (msg) => {
             const userRes = await getOccupation(session.temp?.email);
             const Id = userRes[0].Id;
             console.log("The Id" ,Id)
-            const botReply = await getChatResponse2(userMessage, occupation, Id);
+            const botReply = await getChatResponse2(userMessage, occupation, username);
             responseMessage = botReply;
           }
   

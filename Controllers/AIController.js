@@ -402,7 +402,7 @@ async function sendandReply(req, res) {
           const document = await getDocument(userres[0].CompanyId);
           responseMessage = await chatWithFinanceBot(document, message,userres[0].Id);
         } else {
-          responseMessage = await getChatResponse1(message, userres[0].Id, userres[0].Occupation);
+          responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
         }
       }
     }
