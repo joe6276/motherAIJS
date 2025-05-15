@@ -362,11 +362,11 @@ async function getOccupation(email){
         return user  
 }
 
-async function getDocument(companyId){    
+async function getDocument(companyId, department){    
     const pool = await mssql.connect(sqlConfig)
     const document =await(await pool.request()
     .input("CompanyId", companyId)
-    .input("Department", "Finance")
+    .input("Department",department)
     .execute("GetDocuments")).recordset  
 
     return document
@@ -570,6 +570,7 @@ module.exports={
     getChatResponse1,
     getChatResponse2,
     getChatResponse,
-    chatWithFinanceBot
+    chatWithFinanceBot,
+    chatWithHealthBot
 
 }

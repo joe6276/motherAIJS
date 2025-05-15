@@ -12,7 +12,8 @@ const {
   getDocument,
   getOccupation,
   insertToDB,
-  loginUserBot
+  loginUserBot,
+  chatWithHealthBot
 } = require('./AIController');
 const mssql= require("mssql")
 const {sqlConfig} = require('../Config')
@@ -99,9 +100,17 @@ bot.on('message', async (msg) => {
 
 
           if (department === "finance") {
-            const document = await getDocument(companyId);
+            const document = await getDocument(companyId,"Finance");
             const botReply = await chatWithFinanceBot(document, userMessage,Id);
             responseMessage = botReply;
+          }else if(department === "finance"){
+          
+              const document = await getDocument(companyId,"Health");
+              console.log(document);
+              
+              const botReply = await chatWithHealthBot(document, userMessage,Id);
+              responseMessage = botReply;
+            
           } else {
            
             const userRes = await getOccupation(session.temp?.email);
