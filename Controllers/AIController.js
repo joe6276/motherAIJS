@@ -467,7 +467,7 @@ async function sendandReply(req, res) {
           const document = await getDocument(userres[0].CompanyId,"Finance");
           responseMessage = await chatWithFinanceBot(document, message,userres[0].Id);
         }else if(userres[0].Department.toLowerCase()  ==="health"){
-            const document = await getDocument(companyId,"Health");
+            const document = await getDocument(userres[0].CompanyId,"Health");
             responseMessage = await chatWithHealthBot(document, message,userres[0].Id);
         } else {
           responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
