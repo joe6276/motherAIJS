@@ -95,13 +95,15 @@ bot.on('message', async (msg) => {
           const department = userRes[0].Department?.toLowerCase();
           const occupation = userRes[0].Occupation;
           const companyId = userRes[0].CompanyId;
-  
+          const Id = userRes[0].Id;
+
+
           if (department === "finance") {
             const document = await getDocument(companyId);
-            const botReply = await chatWithFinanceBot(document, userMessage,userRes[0].Id);
+            const botReply = await chatWithFinanceBot(document, userMessage,Id);
             responseMessage = botReply;
           } else {
-            const botReply = await getChatResponse2(userMessage, occupation, userRes[0].Id);
+            const botReply = await getChatResponse2(userMessage, occupation, Id);
             responseMessage = botReply;
           }
   
