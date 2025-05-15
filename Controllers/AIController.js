@@ -398,7 +398,7 @@ async function sendandReply(req, res) {
       }
        else {
         // Continue with normal chat flow
-        if (userres[0].Department.toLowerCase() === "finance") {
+        if (userres[0].Department && userres[0].Department.toLowerCase() === "finance") {
           const document = await getDocument(userres[0].CompanyId);
           responseMessage = await chatWithFinanceBot(document, message,userres[0].Id);
         } else {
