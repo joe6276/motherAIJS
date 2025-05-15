@@ -103,9 +103,10 @@ bot.on('message', async (msg) => {
             const botReply = await chatWithFinanceBot(document, userMessage,Id);
             responseMessage = botReply;
           } else {
-            console.log("The Id" ,Id)
+           
             const userRes = await getOccupation(session.temp?.email);
             const Id = userRes[0].Id;
+            console.log("The Id" ,Id)
             const botReply = await getChatResponse2(userMessage, occupation, Id);
             responseMessage = botReply;
           }
