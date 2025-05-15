@@ -12,6 +12,7 @@ const { FaissStore }=require("@langchain/community/vectorstores/faiss")
 const { ChatOpenAI }=require("@langchain/openai")
 const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
+const pdfParse = require("pdf-parse")
 
 const {AIMessage,SystemMessage,HumanMessage}  = require("@langchain/core/messages") 
 const { BlobServiceClient } = require("@azure/storage-blob");
@@ -91,6 +92,70 @@ const documentSearch = await FaissStore.fromTexts(
 return result.text 
 }
 
+
+async function chatWithHealthBot(fileUrls, query, userId) {
+    const openAIApiKey = API_KEy;
+    const allTexts = [];
+  
+    for (const fileUrl of fileUrls) {
+      const response = await axios.get(fileUrl.DocumentURL, { responseType: 'arraybuffer' });
+      const data = response.data;
+  
+      // Extract text from PDF
+      const pdfData = await pdfParse(data);
+      const raw_text = `\n=== Document: ${fileUrl.DocumentURL} ===\n` + pdfData.text;
+  
+      console.log(raw_text);
+  
+      // Split text into chunks
+      const textSplitter = new CharacterTextSplitter({
+        separator: '\n',
+        chunkSize: 1000,
+        chunkOverlap: 200,
+        lengthFunction: (text) => text.length,
+      });
+  
+      const texts = await textSplitter.splitText(raw_text);
+      allTexts.push(...texts);
+    }
+  
+    console.log(allTexts);
+  
+    // Generate embeddings from all text chunks
+    const documentSearch = await FaissStore.fromTexts(
+      allTexts,
+      {},
+      new OpenAIEmbeddings({ openAIApiKey })
+    );
+  
+    // Perform similarity search
+    const resultOne = await documentSearch.similaritySearch(query, 1);
+  
+    // Initialize Health-focused LLM
+    const llm = new ChatOpenAI({
+      openAIApiKey,
+      model: 'gpt-4',
+      temperature: 0.9,
+      prefixMessages: [
+        {
+          role: 'system',
+          content: `You are a highly skilled healthcare assistant specialized in analyzing medical and health-related PDF documents. Focus exclusively on interpreting information such as diagnoses, symptoms, treatments, prescriptions, lab results, vitals, and clinical notes.
+  Avoid fabricating information or providing generic advice. If data is missing or unclear, recommend consulting a qualified medical professional or refer to credible sources.
+  Provide responses that are accurate, medically relevant, and easy to understand.`,
+        },
+      ],
+    });
+  
+    // Load QA chain and get answer
+    const chain = loadQAStuffChain(llm);
+    const result = await chain.call({
+      input_documents: resultOne,
+      question: query,
+    });
+  
+    console.log(result);
+    return result.text;
+  }
 
 
 

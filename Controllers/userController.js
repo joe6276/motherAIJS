@@ -40,7 +40,7 @@ async function createAdmin(req,res){
 
 async function addUser(req,res){
     try {
-        const {firstName, lastName, email, password,companyId,occupation,Department}= req.body
+        const {firstName, lastName, email, password,companyId,occupation,department}= req.body
        
         const hashedPassword= await bcrypt.hash(password,10)
         const pool = await mssql.connect(sqlConfig)
@@ -60,7 +60,7 @@ async function addUser(req,res){
         .input("Role", "user")
         .input("CompanyId", companyId)
         .input("Occupation",occupation)
-        .input("Department", Department)
+        .input("Department", department)
         .execute("AddUser")
 
 
