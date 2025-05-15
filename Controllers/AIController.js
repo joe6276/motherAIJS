@@ -392,7 +392,7 @@ async function sendandReply(req, res) {
                         .input("DocumentURL", uploadedUrl)
                         .execute("addDocument")
 
-        responseMessage = `✅ File uploaded to Azure successfully: ${uploadedUrl}`;
+        responseMessage = `✅ File uploaded successfully`;
       }
        else {
         // Continue with normal chat flow

@@ -175,7 +175,7 @@ bot.on('document', async (msg)=>{
     console.log("The URL");
     console.log(documentUrl);
     
-    await bot.sendMessage(chatId, `✅ File uploaded and saved!\n📎 URL: ${documentUrl}`);
+    await bot.sendMessage(chatId, `✅ File uploaded and saved!`);
 
   }catch(error){
     console.error("Upload failed:", error.message);
