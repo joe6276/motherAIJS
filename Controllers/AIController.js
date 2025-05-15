@@ -138,6 +138,8 @@ async function getChatResponse(message, userId) {
 
 
 async function getChatResponse2(message,occupation) {
+    console.log(message,userId,occupation);
+    
     const pool = await mssql.connect(sqlConfig)
     
     const messages = [{
@@ -182,6 +184,9 @@ async function getChatResponse2(message,occupation) {
 
 
 async function getChatResponse1(message ,userId, occupation) {
+
+    console.log(message,userId,occupation);
+    
     const pool = await mssql.connect(sqlConfig)
   
     const messages = [{
@@ -204,7 +209,7 @@ async function getChatResponse1(message ,userId, occupation) {
     }
 
     messages.push({ role: "user", content: message })
-
+    console.log(messages);
 
     const response = await fetch(API_URL, {
         method: "POST",
