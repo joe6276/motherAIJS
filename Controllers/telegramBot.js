@@ -103,7 +103,7 @@ bot.on('message', async (msg) => {
             const document = await getDocument(companyId,"Finance");
             const botReply = await chatWithFinanceBot(document, userMessage,Id);
             responseMessage = botReply;
-          }else if(department === "finance"){
+          }else if(department === "health"){
           
               const document = await getDocument(companyId,"Health");
               console.log(document);
