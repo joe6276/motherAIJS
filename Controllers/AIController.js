@@ -475,8 +475,7 @@ async function sendandReply(req, res) {
                     responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
                   }
             }else{
-                responseMessage="User Must belong to a department"
-                return;
+                responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
             }
           }
         }
