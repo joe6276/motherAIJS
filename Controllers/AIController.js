@@ -407,8 +407,8 @@ async function sendandReply(req, res) {
       // If message is "start", reset login session and prompt for email
       if (message === "start") {
         loginSteps.delete(from);
-        loginSteps.set(from, { step: 1, temp: {} });
-        responseMessage = "🔄 Session restarted. Please enter your email to log in.";
+        loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
+        responseMessage = "Please enter your email to log in.";
       } else {
         const session = loginSteps.get(from) || { step: 1, temp: {} };
   
