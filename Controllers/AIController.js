@@ -46,7 +46,6 @@ for (const fileUrl of fileUrls) {
     });
   });
 
-  console.log(raw_text);
   
   // Split text
   const textSplitter = new CharacterTextSplitter({
@@ -59,7 +58,7 @@ for (const fileUrl of fileUrls) {
   const texts = await textSplitter.splitText(raw_text);
   allTexts.push(...texts);
 }
-console.log(allTexts);
+
 
 // Generate embeddings from all text chunks
 const documentSearch = await FaissStore.fromTexts(
