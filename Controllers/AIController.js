@@ -161,12 +161,14 @@ async function chatWithHealthBot(fileUrls, query, userId) {
 async function getChatResponse(message, userId) {
     const pool = await mssql.connect(sqlConfig)
     const occupation = await (await pool.request().input("Id", userId).execute("getUserById")).recordset
-
-    const messages= [{
-        role: 'system', content: `
-        You an Experienced Assistant Kindly advise based on User profession which is ${occupation[0].Occupation}
-        Don't answer any questions outside ${occupation[0].Occupation} 
-    `}]
+    const messages = [{
+      role: 'system', content: `
+          You are an experienced and helpful assistant. Keep responses concise and to the point, Provide advice and guidance relevant to the user's queries. 
+          However, if the user asks questions related to finance or health, do not attempt to answer them directly.
+          Instead, kindly recommend using the dedicated agents specialized in those areas for accurate and reliable support.
+      `
+  }]
+  
 
 
     const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
@@ -207,10 +209,13 @@ async function getChatResponse2(message,occupation,userId) {
     const pool = await mssql.connect(sqlConfig)
     
     const messages = [{
-        role: 'system', content: `
-        You an Experienced Assistant, Kindly advise based on User profession which is ${occupation}, Don't answer any questions outside ${occupation}
-    `}]
-
+      role: 'system', content: `
+          You are an experienced and helpful assistant.Keep responses concise and to the point, Provide advice and guidance relevant to the user's queries. 
+          However, if the user asks questions related to finance or health, do not attempt to answer them directly.
+          Instead, kindly recommend using the dedicated agents specialized in those areas for accurate and reliable support.
+      `
+  }]
+  
    
 
  history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
@@ -254,10 +259,13 @@ async function getChatResponse1(message ,userId, occupation) {
     const pool = await mssql.connect(sqlConfig)
   
     const messages = [{
-        role: 'system', content: `
-        You an Experienced Marketter with alot of experience in the field .You work is to answer any marketing question asked in a simple way.
-      also Kindly advise based on User profession which is ${occupation}.Don't answer any questions outside ${occupation}, Kindly short form the answer.
-    `}]
+      role: 'system', content: `
+          You are an experienced and helpful assistant.Keep responses concise and to the point, Provide advice and guidance relevant to the user's queries. 
+          However, if the user asks questions related to finance or health, do not attempt to answer them directly.
+          Instead, kindly recommend using the dedicated agents specialized in those areas for accurate and reliable support.
+      `
+  }]
+  
 
     console.log(messages);
 
