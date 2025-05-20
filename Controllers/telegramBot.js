@@ -8,7 +8,7 @@ const axios= require('axios')
 const TelegramBot = require('node-telegram-bot-api');
 const {
   chatWithFinanceBot,
-  getChatResponse2,
+  getChatResponse1,
   chatWithMarketingBot,
   getDocument,
   getOccupation,
