@@ -9,6 +9,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const {
   chatWithFinanceBot,
   getChatResponse2,
+  chatWithMarketingBot,
   getDocument,
   getOccupation,
   insertToDB,
@@ -105,12 +106,12 @@ bot.on('message', async (msg) => {
             const document = await getDocument(companyId,"Finance");
             const botReply = await chatWithFinanceBot(document, userMessage,Id);
             responseMessage = botReply;
-          }else if(department ==="health"){
+          }else if(department ==="marketing"){
           
-              const document = await getDocument(companyId,"Health");
+              const document = await getDocument(companyId,"Marketing");
               console.log(document);
           
-              const botReply = await chatWithHealthBot(document, userMessage,Id);
+              const botReply = await chatWithMarketingBot(document, userMessage,Id);
               responseMessage = botReply;
             
           } else {

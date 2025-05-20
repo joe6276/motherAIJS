@@ -90,7 +90,73 @@ const documentSearch = await FaissStore.fromTexts(
 
 return result.text 
 }
+async function chatWithMarketingBot(fileUrls, query, userId) {
+    const openAIApiKey = API_KEy;
+    const allTexts = [];
+  
+    for (const fileUrl of fileUrls) {
+      const response = await axios.get(fileUrl.DocumentURL, { responseType: 'arraybuffer' });
+      const data = response.data;
+  
+      // Extract text from PDF
+      const pdfData = await pdfParse(data);
+      const raw_text = `\n=== Document: ${fileUrl.DocumentURL} ===\n` + pdfData.text;
+  
+      console.log(raw_text);
+  
+      // Split text into chunks
+      const textSplitter = new CharacterTextSplitter({
+        separator: '\n',
+        chunkSize: 1000,
+        chunkOverlap: 200,
+        lengthFunction: (text) => text.length,
+      });
+  
+      const texts = await textSplitter.splitText(raw_text);
+      allTexts.push(...texts);
+    }
+  
+    console.log(allTexts);
+  
+    // Generate embeddings from all text chunks
+    const documentSearch = await FaissStore.fromTexts(
+      allTexts,
+      {},
+      new OpenAIEmbeddings({ openAIApiKey })
+    );
+  
+    // Perform similarity search
+    const resultOne = await documentSearch.similaritySearch(query, 1);
+  
+    // Initialize Health-focused LLM
+    const llm = new ChatOpenAI({
+      openAIApiKey,
+      model: 'gpt-4',
+      temperature: 0.9,
+  
+ prefixMessages: [
+  {
+    role: 'system',
+    content: `You are a creative and persuasive marketing assistant. Your role is to help craft engaging content, compelling copy,
+     and data-driven strategies tailored to different audiences and platforms. Focus on understanding the target market, highlighting 
+     unique value propositions, and driving conversions or brand awareness. Avoid making unverifiable claims or using overly generic language. 
+     Stay aligned with brand tone and voice, and always consider the marketing goal—whether it’s engagement, lead generation, or sales.
+     Make suggestions that are impactful, clear, and relevant to current trends and best practices.`
+  }
+]
 
+    });
+  
+    // Load QA chain and get answer
+    const chain = loadQAStuffChain(llm);
+    const result = await chain.call({
+      input_documents: resultOne,
+      question: query,
+    });
+  
+    console.log(result);
+    return result.text;
+  }
 
 async function chatWithHealthBot(fileUrls, query, userId) {
     const openAIApiKey = API_KEy;
@@ -135,14 +201,21 @@ async function chatWithHealthBot(fileUrls, query, userId) {
       openAIApiKey,
       model: 'gpt-4',
       temperature: 0.9,
-      prefixMessages: [
-        {
-          role: 'system',
-          content: `You are a highly skilled healthcare assistant specialized in analyzing medical and health-related PDF documents. Focus exclusively on interpreting information such as diagnoses, symptoms, treatments, prescriptions, lab results, vitals, and clinical notes.
-  Avoid fabricating information or providing generic advice. If data is missing or unclear, recommend consulting a qualified medical professional or refer to credible sources.
-  Provide responses that are accurate, medically relevant, and easy to understand.`,
-        },
-      ],
+  //     prefixMessages: [
+  //       {
+  //         role: 'system',
+  //         content: `You are a highly skilled healthcare assistant specialized in analyzing medical and health-related PDF documents. Focus exclusively on interpreting information such as diagnoses, symptoms, treatments, prescriptions, lab results, vitals, and clinical notes.
+  // Avoid fabricating information or providing generic advice. If data is missing or unclear, recommend consulting a qualified medical professional or refer to credible sources.
+  // Provide responses that are accurate, medically relevant, and easy to understand.`,
+  //       },
+  //     ],
+ prefixMessages: [
+  {
+    role: 'system',
+    content: `You are a creative and persuasive marketing assistant. Your role is to help craft engaging content, compelling copy, and data-driven strategies tailored to different audiences and platforms. Focus on understanding the target market, highlighting unique value propositions, and driving conversions or brand awareness. Avoid making unverifiable claims or using overly generic language. Stay aligned with brand tone and voice, and always consider the marketing goal—whether it’s engagement, lead generation, or sales. Make suggestions that are impactful, clear, and relevant to current trends and best practices.`
+  }
+]
+
     });
   
     // Load QA chain and get answer
@@ -161,13 +234,20 @@ async function chatWithHealthBot(fileUrls, query, userId) {
 async function getChatResponse(message, userId) {
     const pool = await mssql.connect(sqlConfig)
     const occupation = await (await pool.request().input("Id", userId).execute("getUserById")).recordset
-    const messages = [{
-      role: 'system', content: `
-          You are an experienced and helpful assistant. Keep responses concise and to the point, Provide advice and guidance relevant to the user's queries. 
-          However, if the user asks questions related to finance or health, do not attempt to answer them directly.
-          Instead, kindly recommend using the dedicated agents specialized in those areas for accurate and reliable support.
-      `
-  }]
+const messages = [
+  {
+    role: 'system',
+    content: `
+      You are an experienced and helpful assistant. Keep responses concise and focused on the user's query.
+      If the user asks about **finance** or **marketing**, do not attempt to answer directly.
+      Instead, clearly inform them:
+      "For finance-related questions, please consult our **Finance Bot**."
+      "For marketing-related questions, please consult our **Marketing Bot**."
+      This ensures users get accurate and specialized support.
+    `
+  }
+];
+
   
 
 
@@ -208,13 +288,20 @@ async function getChatResponse2(message,occupation,userId) {
     
     const pool = await mssql.connect(sqlConfig)
     
-    const messages = [{
-      role: 'system', content: `
-          You are an experienced and helpful assistant.Keep responses concise and to the point, Provide advice and guidance relevant to the user's queries. 
-          However, if the user asks questions related to finance or health, do not attempt to answer them directly.
-          Instead, kindly recommend using the dedicated agents specialized in those areas for accurate and reliable support.
-      `
-  }]
+const messages = [
+  {
+    role: 'system',
+    content: `
+      You are an experienced and helpful assistant. Keep responses concise and focused on the user's query.
+      If the user asks about **finance** or **marketing**, do not attempt to answer directly.
+      Instead, clearly inform them:
+      "For finance-related questions, please consult our **Finance Bot**."
+      "For marketing-related questions, please consult our **Marketing Bot**."
+      This ensures users get accurate and specialized support.
+    `
+  }
+];
+
   
    
 
@@ -258,13 +345,20 @@ async function getChatResponse1(message ,userId, occupation) {
     
     const pool = await mssql.connect(sqlConfig)
   
-    const messages = [{
-      role: 'system', content: `
-          You are an experienced and helpful assistant.Keep responses concise and to the point, Provide advice and guidance relevant to the user's queries. 
-          However, if the user asks questions related to finance or health, do not attempt to answer them directly.
-          Instead, kindly recommend using the dedicated agents specialized in those areas for accurate and reliable support.
-      `
-  }]
+const messages = [
+  {
+    role: 'system',
+    content: `
+      You are an experienced and helpful assistant. Keep responses concise and focused on the user's query.
+      If the user asks about **finance** or **marketing**, do not attempt to answer directly.
+      Instead, clearly inform them:
+      "For finance-related questions, please consult our **Finance Bot**."
+      "For marketing-related questions, please consult our **Marketing Bot**."
+      This ensures users get accurate and specialized support.
+    `
+  }
+];
+
   
 
     console.log(messages);
@@ -476,9 +570,9 @@ async function sendandReply(req, res) {
                 if (userres[0].Department.toLowerCase() === "finance") {
                     const document = await getDocument(userres[0].CompanyId, "Finance");
                     responseMessage = await chatWithFinanceBot(document, message, userres[0].Id);
-                  } else if (userres[0].Department.toLowerCase() === "health") {
-                    const document = await getDocument(userres[0].CompanyId, "Health");
-                    responseMessage = await chatWithHealthBot(document, message, userres[0].Id);
+                  } else if (userres[0].Department.toLowerCase() === "marketing") {
+                    const document = await getDocument(userres[0].CompanyId, "Marketing");
+                    responseMessage = await chatWithMarketingBot(document, message, userres[0].Id);
                   } else {
                     responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
                   }
@@ -505,78 +599,6 @@ async function sendandReply(req, res) {
   }
   
 
-// async function sendandReply(req, res) {
-//     const from = req.body.From;
-//     const to = req.body.To;
-//     const message = req.body.Body?.trim();
-//     console.log('Body', req.body);
-//     const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
-//         console.log(client);
-        
-//     let myemail='';
-//     let responseMessage = "";
-
-//     try {
-//         const session = loginSteps.get(from) || { step: 1, temp: {} };
-
-//         if (session.step === 1) {
-//             responseMessage = "Welcome! Please enter your email to log in.";
-//             session.step = 2;
-//             loginSteps.set(from, session);
-//         } else if (session.step === 2) {
-//             session.temp.email = message;
-//             session.step = 3;
-//             loginSteps.set(from, session);
-//             responseMessage = "Thank you. Now, please enter your password.";
-//         } else if (session.step === 3) {
-//             const { email } = session.temp;
-//             const password = message;
-
-//             const isLoginValid= await loginUserBot(email,password)
-//             myemail=email
-            
-//             if (isLoginValid) {
-//                 loginSteps.set(from, { step: 4, temp: { email } });
-//                 responseMessage = `✅ Login successful. Welcome ${email}! You can now chat with the bot.`;
-//             } else {
-//                 loginSteps.delete(from);
-//                 responseMessage = "❌ Invalid credentials. Please start again by typing your email.";
-//             }
-//         } else {
-//             // Step 4: Already authenticated
-  
-//             const userres = await getOccupation(session.temp?.email)
-
-            
-//                 if(userres[0].Department.toLowerCase() === "Finance".toLowerCase()){
-//                     const document = await getDocument(userres[0].CompanyId)
-//                     responseMessage = await chatWithFinanceBot(document, message)
-
-              
-//                 }else{
-//                     const response = await getChatResponse1(message, from,   userres[0].Occupation );
-//                     responseMessage = response;
-//                 }
-
-//                 console.log('The response',responseMessage);
-//         }
-//         console.log('The response',responseMessage);
-//         await client.messages.create({
-//             from: to,
-//             to: from,
-//             body: responseMessage
-//         });
-
-//         await insertToDB(message, responseMessage, "Whatsapp", from);
-//         console.log(`Replied to ${from}`);
-//     } catch (err) {
-//         console.error("Error:", err);
-//     }
-
-//     res.send("<Response></Response>");
-// }
-
-
 module.exports={
     sendandReply,
     getDocument,
@@ -589,6 +611,7 @@ module.exports={
     getChatResponse2,
     getChatResponse,
     chatWithFinanceBot,
-    chatWithHealthBot
+    chatWithHealthBot,
+    chatWithMarketingBot
 
 }
