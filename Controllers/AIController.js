@@ -13,7 +13,7 @@ const { ChatOpenAI }=require("@langchain/openai")
 const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
 const pdfParse = require("pdf-parse")
-
+const {sendMail} = require('./telegramBot')
 const {AIMessage,SystemMessage,HumanMessage}  = require("@langchain/core/messages") 
 const { BlobServiceClient } = require("@azure/storage-blob");
 
@@ -594,6 +594,11 @@ async function sendandReply(req, res) {
   
     } catch (err) {
       console.error("Error:", err);
+        loginSteps.delete(from);
+        loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
+        responseMessage = "Session Restarted, Please enter your email to log in.";
+
+         sendMail(`<p>${err}</p>`)
     }
   
     res.send("<Response></Response>");

@@ -19,7 +19,7 @@ const {
 } = require('./AIController');
 const mssql= require("mssql")
 const {sqlConfig} = require('../Config')
-
+const{sendMail} =require('./emailService')
 
 
 const bot = new TelegramBot(process.env.TELEGRAM, { polling: true });
@@ -136,7 +136,12 @@ bot.on('message', async (msg) => {
   
     } catch (error) {
       console.error("Error in Telegram bot:", error);
-      await bot.sendMessage(chatId, "⚠️ Something went wrong. Please try again.");
+      // await bot.sendMessage(chatId, "⚠️ Something went wrong. Please try again.");
+        sendMail(`<p>${error}</p>`)
+        loginSteps.delete(chatId);
+        await bot.sendMessage(chatId, "Session Restarted, Please enter Email to Login In");
+        loginSteps.set(chatId, { step: 2, temp: {} });
+        return;
     }
   });
   
