@@ -213,6 +213,29 @@ bot.on('document', async (msg)=>{
   }
 })
 
+
+function escapeMarkdownV2(text) {
+  return text
+    .replace(/_/g, '\\_')
+    .replace(/\*/g, '\\*')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/~/g, '\\~')
+    .replace(/`/g, '\\`')
+    .replace(/>/g, '\\>')
+    .replace(/#/g, '\\#')
+    .replace(/\+/g, '\\+')
+    .replace(/-/g, '\\-')
+    .replace(/=/g, '\\=')
+    .replace(/\|/g, '\\|')
+    .replace(/{/g, '\\{')
+    .replace(/}/g, '\\}')
+    .replace(/\./g, '\\.')
+    .replace(/!/g, '\\!');
+}
+
 bot.on('photo', async(msg)=>{
     const chatId = msg.chat.id;
 
@@ -294,7 +317,8 @@ bot.on('photo', async(msg)=>{
     const analysis = gptResponse.choices[0].message.content;
     console.log(analysis);
 
-    await bot.sendMessage(chatId, `🧠 *Image Analysis*:\n${analysis}`, { parse_mode: "Markdown" });
+   const safeText = escapeMarkdownV2(analysis);
+   await bot.sendMessage(chatId, `🧠 *Image Analysis*:\\n${safeText}`, { parse_mode: "MarkdownV2" });
 
   } catch (error) {
     console.error("Photo upload or analysis failed:", error.message || error);
