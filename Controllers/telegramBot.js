@@ -272,7 +272,7 @@ bot.on('photo', async(msg)=>{
     console.log(base64Image);
 
     const gptResponse = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4-turbo",
       messages: [
         {
           role: "user",
