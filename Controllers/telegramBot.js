@@ -20,13 +20,16 @@ const {
 const mssql= require("mssql")
 const {sqlConfig} = require('../Config')
 const{sendMail} =require('./emailService')
-
-
+const OpenAI =require("openai")
 const bot = new TelegramBot(process.env.TELEGRAM, { polling: true });
 const loginSteps = new Map();
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
 const containerName = process.env.AZURE_BLOB_CONTAINER_NAME;
 
+
+const openai= new OpenAI({
+  apiKey: process.env.API_URL
+})
 
 
 bot.on('message', async (msg) => {
@@ -200,6 +203,39 @@ bot.on('document', async (msg)=>{
     console.log(documentUrl);
     
     await bot.sendMessage(chatId, `✅ File uploaded and saved!`);
+
+   if(mimeType.startsWith("image/")){
+
+    const base64Image= Buffer.from(response.data).toString('base64')
+
+    console.log(base64Image);
+
+
+    const response= await openai.chat.completions.create({
+        model:'gpt-4-vision-preview',
+        messages:[
+            {
+                role:"user",
+                content:[
+                    {type:'text', text:'Describe the Image'},
+                    {
+                        type:'image_url',
+                        image_url:{
+                            url:`data:${mimeType};base64,${base64Image}`
+                        }
+                    }
+                ]
+            }
+        ],
+        max_tokens:500
+    })
+    
+    console.log(response);
+    
+     const description = response.data.choices[0].message.content;
+      await bot.sendMessage(chatId, `🖼️ Image Analysis:\n${description}`);
+    
+   }
 
   }catch(error){
     console.error("Upload failed:", error.message);
