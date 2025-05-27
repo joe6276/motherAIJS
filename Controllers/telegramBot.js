@@ -204,42 +204,92 @@ bot.on('document', async (msg)=>{
     
     await bot.sendMessage(chatId, `✅ File uploaded and saved!`);
 
-   if(mimeType.startsWith("image/")){
 
-    const base64Image= Buffer.from(response.data).toString('base64')
-
-    console.log(base64Image);
-
-
-    const response= await openai.chat.completions.create({
-        model:'gpt-4-vision-preview',
-        messages:[
-            {
-                role:"user",
-                content:[
-                    {type:'text', text:'Describe the Image'},
-                    {
-                        type:'image_url',
-                        image_url:{
-                            url:`data:${mimeType};base64,${base64Image}`
-                        }
-                    }
-                ]
-            }
-        ],
-        max_tokens:500
-    })
-    
-    console.log(response);
-    
-     const description = response.data.choices[0].message.content;
-      await bot.sendMessage(chatId, `🖼️ Image Analysis:\n${description}`);
-    
-   }
 
   }catch(error){
     console.error("Upload failed:", error.message);
     await bot.sendMessage(chatId, "⚠️ File upload failed.");
     
+  }
+})
+
+bot.on('photo', async(msg)=>{
+ const session = loginSteps.get(chatId);
+  if (!session || !session.temp?.email) {
+    await bot.sendMessage(chatId, "❌ You must log in first using /start.");
+    return;
+  }
+
+  try {
+      const email = session.temp.email;
+    const userInfo = await getOccupation(email);
+    if (!userInfo || !userInfo[0]) {
+      await bot.sendMessage(chatId, "⚠️ Could not retrieve your user profile.");
+      return;
+    }
+
+    const { CompanyId, Department } = userInfo[0];
+    const photoArray = msg.photo;
+    const largestPhoto = photoArray[photoArray.length - 1]; // highest resolution
+    const fileId = largestPhoto.file_id;
+
+    const file = await bot.getFile(fileId);
+    const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM}/${file.file_path}`;
+
+    const response = await axios.get(fileUrl, { responseType: 'arraybuffer' });
+    const mimeType = 'image/jpeg'; // Telegram converts photos to JPEG
+
+    // Upload to Azure Blob
+    const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    await containerClient.createIfNotExists({ access: "blob" });
+
+    const blobName = `${uuidv4()}.jpg`;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    await blockBlobClient.uploadData(response.data, {
+      blobHTTPHeaders: { blobContentType: mimeType },
+    });
+
+    const documentUrl = blockBlobClient.url;
+
+    // Save to DB
+    const pool = await mssql.connect(sqlConfig);
+    await pool.request()
+      .input("CompanyId", CompanyId)
+      .input("Department", Department)
+      .input("DocumentURL", documentUrl)
+      .execute("addDocument");
+
+    await bot.sendMessage(chatId, `📸 Image uploaded and saved.`);
+
+    // GPT-4 Vision Analysis
+    const base64Image = Buffer.from(response.data).toString('base64');
+
+    const gptResponse = await openai.chat.completions.create({
+      model: "gpt-4-vision-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Describe the image content." },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 500,
+    });
+
+    const analysis = gptResponse.choices[0].message.content;
+    await bot.sendMessage(chatId, `🧠 *Image Analysis*:\n${analysis}`, { parse_mode: "Markdown" });
+
+  } catch (error) {
+    console.error("Photo upload or analysis failed:", error.message || error);
+    await bot.sendMessage(chatId, "⚠️ Photo upload or analysis failed.");
   }
 })
