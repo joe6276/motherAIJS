@@ -214,6 +214,8 @@ bot.on('document', async (msg)=>{
 })
 
 bot.on('photo', async(msg)=>{
+    const chatId = msg.chat.id;
+
  const session = loginSteps.get(chatId);
   if (!session || !session.temp?.email) {
     await bot.sendMessage(chatId, "❌ You must log in first using /start.");
@@ -252,7 +254,8 @@ bot.on('photo', async(msg)=>{
     });
 
     const documentUrl = blockBlobClient.url;
-
+    console.log(documentUrl);
+    
     // Save to DB
     const pool = await mssql.connect(sqlConfig);
     await pool.request()
@@ -262,9 +265,11 @@ bot.on('photo', async(msg)=>{
       .execute("addDocument");
 
     await bot.sendMessage(chatId, `📸 Image uploaded and saved.`);
+  
 
     // GPT-4 Vision Analysis
     const base64Image = Buffer.from(response.data).toString('base64');
+    console.log(base64Image);
 
     const gptResponse = await openai.chat.completions.create({
       model: "gpt-4-vision-preview",
@@ -284,8 +289,11 @@ bot.on('photo', async(msg)=>{
       ],
       max_tokens: 500,
     });
+    console.log(gptResponse);
 
     const analysis = gptResponse.choices[0].message.content;
+    console.log(analysis);
+
     await bot.sendMessage(chatId, `🧠 *Image Analysis*:\n${analysis}`, { parse_mode: "Markdown" });
 
   } catch (error) {
