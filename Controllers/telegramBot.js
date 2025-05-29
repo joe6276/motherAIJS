@@ -287,7 +287,7 @@ bot.on('photo', async(msg)=>{
       .input("DocumentURL", documentUrl)
       .execute("addDocument");
 
-    await bot.sendMessage(chatId, `📸 Image uploaded and saved.`);
+    await bot.sendMessage(chatId, `📸 Image uploaded and saved GPT analysis following soon.`);
   
 
     // GPT-4 Vision Analysis
