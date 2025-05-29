@@ -519,9 +519,10 @@ async function analyzeImageWithOpenAI(base64Image, mimeType) {
     });
 
     return response.choices[0]?.message?.content || "Image analyzed, but no description returned.";
+
   } catch (error) {
     console.error("Image analysis failed:", error.message);
-    return "⚠️ Photo analysis failed.";
+    return error.message;
   }
 }
 
