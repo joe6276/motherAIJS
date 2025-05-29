@@ -14,10 +14,8 @@ const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
 const pdfParse = require("pdf-parse")
 const {sendMail} = require('./telegramBot')
-const {AIMessage,SystemMessage,HumanMessage}  = require("@langchain/core/messages") 
 const { BlobServiceClient } = require("@azure/storage-blob");
-
-
+const { OpenAI } = require("openai");
 
 
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
@@ -497,8 +495,7 @@ async function uploadToAzure(buffer, filename, contentType) {
 }
 
 
-const { OpenAI } = require("openai");
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.API_URL  });
 
 async function analyzeImageWithOpenAI(base64Image, mimeType) {
   try {
