@@ -505,7 +505,7 @@ async function analyzeImageWithOpenAI(base64Image, mimeType) {
         {
           role: "user",
           content: [
-            { type: "text", text: "Describe this image in detail." },
+            { type: "text", text: "Describe this image in a concise and focused way ." },
             {
               type: "image_url",
               image_url: {
