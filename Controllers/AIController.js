@@ -13,7 +13,7 @@ const { ChatOpenAI }=require("@langchain/openai")
 const { loadQAStuffChain }=require("langchain/chains")
 const xlsx = require('xlsx')
 const pdfParse = require("pdf-parse")
-const {sendMail} = require('./telegramBot')
+const {sendMail} = require('./emailService')
 const { BlobServiceClient } = require("@azure/storage-blob");
 const { OpenAI } = require("openai");
 
