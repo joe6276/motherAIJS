@@ -497,6 +497,37 @@ async function uploadToAzure(buffer, filename, contentType) {
 }
 
 
+const { OpenAI } = require("openai");
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+async function analyzeImageWithOpenAI(base64Image, mimeType) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-vision-preview",
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Describe this image in detail." },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`,
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 500,
+    });
+
+    return response.choices[0]?.message?.content || "Image analyzed, but no description returned.";
+  } catch (error) {
+    console.error("Image analysis failed:", error.message);
+    return "⚠️ Photo analysis failed.";
+  }
+}
+
 async function sendandReply(req, res) {
     const from = req.body.From;
     const to = req.body.To;
@@ -542,29 +573,40 @@ async function sendandReply(req, res) {
   
           if (mediaCount > 0) {
             const mediaUrl = req.body.MediaUrl0;
-            const contentType = req.body.MediaContentType0;
-  
+            const contentType = req.body.MediaContentType0 || '';
             const extension = contentType.split('/')[1];
             const filename = `whatsapp-upload-${Date.now()}.${extension}`;
-  
+
+            // Download media from Twilio
             const mediaBuffer = (await axios.get(mediaUrl, {
               responseType: 'arraybuffer',
               headers: {
                 Authorization: `Basic ${Buffer.from(process.env.ACCOUNT_SID + ':' + process.env.AUTH_TOKEN).toString('base64')}`,
               },
             })).data;
-  
-            const { CompanyId, Department } = userres[0];
+
+            // Upload to Azure Blob
             const uploadedUrl = await uploadToAzure(mediaBuffer, filename, contentType);
-  
+
+            // Save to SQL DB
+            const { CompanyId, Department } = userres[0];
             const pool = await mssql.connect(sqlConfig);
             await pool.request()
               .input("CompanyId", CompanyId)
               .input("Department", Department)
               .input("DocumentURL", uploadedUrl)
               .execute("addDocument");
-  
-            responseMessage = `✅ File uploaded successfully`;
+
+            // 🔍 Analyze only if it's an image
+            let analysisText = "";
+            if (contentType.startsWith("image/")) {
+              const base64Image = Buffer.from(mediaBuffer).toString("base64");
+              analysisText = await analyzeImageWithOpenAI(base64Image, contentType);
+              responseMessage = `✅ Image uploaded successfully.\n\n🤖 GPT-4 says:\n${analysisText}`;
+            } else {
+              responseMessage = `✅ Document uploaded successfully.`;
+            }
+
           } else {
             // Continue with normal chat flow
             if(userres[0].Department){
@@ -604,6 +646,118 @@ async function sendandReply(req, res) {
     res.send("<Response></Response>");
   }
   
+
+// async function sendandReply(req, res) {
+//     const from = req.body.From;
+//     const to = req.body.To;
+//     const message = req.body.Body?.trim().toLowerCase(); // Convert message to lowercase for easier comparison
+//     const mediaCount = parseInt(req.body.NumMedia || '0');
+//     const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
+  
+//     let responseMessage = "";
+  
+//     try {
+//       // If message is "start", reset login session and prompt for email
+//       if (message === "start") {
+//         loginSteps.delete(from);
+//         loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
+//         responseMessage = "Please enter your email to log in.";
+//       } else {
+//         const session = loginSteps.get(from) || { step: 1, temp: {} };
+  
+//         if (session.step === 1) {
+//           responseMessage = "Welcome! Please enter your email to log in.";
+//           session.step = 2;
+//           loginSteps.set(from, session);
+//         } else if (session.step === 2) {
+//           session.temp.email = message;
+//           session.step = 3;
+//           loginSteps.set(from, session);
+//           responseMessage = "Thank you. Now, please enter your password.";
+//         } else if (session.step === 3) {
+//           const { email } = session.temp;
+//           const password = message;
+  
+//           const isLoginValid = await loginUserBot(email, password);
+//           if (isLoginValid) {
+//             loginSteps.set(from, { step: 4, temp: { email } });
+//             responseMessage = `✅ Login successful. Welcome ${email}! You can now chat with the bot.`;
+//           } else {
+//             loginSteps.delete(from);
+//             responseMessage = "❌ Invalid credentials. Please start again by typing your email.";
+//           }
+//         } else {
+//           // Step 4: Authenticated
+//           const userres = await getOccupation(session.temp?.email);
+  
+//           if (mediaCount > 0) {
+//             const mediaUrl = req.body.MediaUrl0;
+//             const contentType = req.body.MediaContentType0;
+  
+//             const extension = contentType.split('/')[1];
+//             const filename = `whatsapp-upload-${Date.now()}.${extension}`;
+  
+//             const mediaBuffer = (await axios.get(mediaUrl, {
+//               responseType: 'arraybuffer',
+//               headers: {
+//                 Authorization: `Basic ${Buffer.from(process.env.ACCOUNT_SID + ':' + process.env.AUTH_TOKEN).toString('base64')}`,
+//               },
+//             })).data;
+  
+//             const { CompanyId, Department } = userres[0];
+//             const uploadedUrl = await uploadToAzure(mediaBuffer, filename, contentType);
+  
+//             const pool = await mssql.connect(sqlConfig);
+//             await pool.request()
+//               .input("CompanyId", CompanyId)
+//               .input("Department", Department)
+//               .input("DocumentURL", uploadedUrl)
+//               .execute("addDocument");
+  
+//             responseMessage = `✅ File uploaded successfully`;
+//           } else {
+//             // Continue with normal chat flow
+//             if(userres[0].Department){
+//                 if (userres[0].Department.toLowerCase() === "finance") {
+//                     const document = await getDocument(userres[0].CompanyId, "Finance");
+//                     responseMessage = await chatWithFinanceBot(document, message, userres[0].Id);
+//                   } else if (userres[0].Department.toLowerCase() === "marketing") {
+//                     const document = await getDocument(userres[0].CompanyId, "Marketing");
+//                     responseMessage = await chatWithMarketingBot(document, message, userres[0].Id);
+//                   } else {
+//                     responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
+//                   }
+//             }else{
+//                 responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
+//             }
+//           }
+//         }
+//       }
+  
+//       await client.messages.create({
+//         from: to,
+//         to: from,
+//         body: responseMessage
+//       });
+  
+//       await insertToDB(req.body.Body?.trim(), responseMessage, "Whatsapp", from);
+  
+//     } catch (err) {
+//       console.error("Error:", err);
+//         loginSteps.delete(from);
+//         loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
+//         responseMessage = "Session Restarted, Please enter your email to log in.";
+
+//          sendMail(`<p>${err}</p>`)
+//     }
+  
+//     res.send("<Response></Response>");
+//   }
+  
+
+
+
+
 
 module.exports={
     sendandReply,
