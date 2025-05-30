@@ -238,6 +238,8 @@ function escapeMarkdownV2(text) {
 
 bot.on('photo', async(msg)=>{
     const chatId = msg.chat.id;
+    const username = msg.from?.username || chatId.toString();
+  
 
  const session = loginSteps.get(chatId);
   if (!session || !session.temp?.email) {
@@ -277,7 +279,7 @@ bot.on('photo', async(msg)=>{
     });
 
     const documentUrl = blockBlobClient.url;
-    console.log(documentUrl);
+ 
     
     // Save to DB
     const pool = await mssql.connect(sqlConfig);
@@ -318,6 +320,8 @@ bot.on('photo', async(msg)=>{
     console.log(analysis);
 
    const safeText = escapeMarkdownV2(analysis);
+   await insertToDB("describe the image" , safeText, "Telegram", username);
+
    await bot.sendMessage(chatId, `🧠 *Image Analysis*:\\n${safeText}`, { parse_mode: "MarkdownV2" });
 
   } catch (error) {
