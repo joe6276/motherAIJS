@@ -327,5 +327,6 @@ bot.on('photo', async(msg)=>{
   } catch (error) {
     console.error("Photo upload or analysis failed:", error.message || error);
     await bot.sendMessage(chatId, "⚠️ Photo upload or analysis failed.");
+    sendMail(`<p>${error.message}</p>`)
   }
 })

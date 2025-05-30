@@ -522,6 +522,7 @@ async function analyzeImageWithOpenAI(base64Image, mimeType) {
 
   } catch (error) {
     console.error("Image analysis failed:", error.message);
+    sendMail(`<p>${error.message}</p>`)
     return error.message;
   }
 }
