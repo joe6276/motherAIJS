@@ -272,6 +272,8 @@ console.log(fileUrls);
       });
     }
 
+    console.log(raw_text);
+    
     const textSplitter = new CharacterTextSplitter({
       separator: "\n",
       chunkSize: 1000,
