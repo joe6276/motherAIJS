@@ -228,6 +228,89 @@ async function chatWithHealthBot(fileUrls, query, userId) {
   }
 
 
+async function chatwithSalesBot(fileUrls, query, userId){
+  const openAIApiKey = process.env.API_URL;
+const allTexts = [];
+console.log(fileUrls);
+
+  for (const fileUrl of fileUrls) {
+    const response = await axios.get(fileUrl.DocumentURL, { responseType: 'arraybuffer' });
+    const data = response.data;
+    const contentType = fileUrl.DocumentURL.split('.').pop().toLowerCase();
+
+    let raw_text = "";
+
+    if (contentType === "xlsx" || contentType === "xls") {
+      // Parse Excel files
+      const workbook = xlsx.read(data, { type: 'buffer' });
+      const sheetNames = workbook.SheetNames;
+
+      sheetNames.forEach(sheetName => {
+        const sheet = workbook.Sheets[sheetName];
+        const rows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+        raw_text += `\n=== Sheet: ${sheetName} from ${fileUrl.DocumentURL} ===\n`;
+        rows.forEach((row) => {
+          raw_text += row.join(" ") + "\n";
+        });
+      });
+
+    } else if (contentType === "csv") {
+      // Parse CSV files
+      const csvText = data.toString('utf8');
+      const records = csvParse(csvText, {
+        skip_empty_lines: true
+      });
+      raw_text += `\n=== CSV File: ${fileUrl.DocumentURL} ===\n`;
+      records.forEach(row => {
+        raw_text += row.join(" ") + "\n";
+      });
+
+    } else if (fileUrl.source === "airtable") {
+      // Airtable record assumed to be passed in JSON format (already fetched)
+      fileUrl.records.forEach(record => {
+        raw_text += Object.entries(record.fields).map(([key, val]) => `${key}: ${val}`).join("\n") + "\n---\n";
+      });
+    }
+
+    const textSplitter = new CharacterTextSplitter({
+      separator: "\n",
+      chunkSize: 1000,
+      chunkOverlap: 200,
+      lengthFunction: (text) => text.length
+    });
+
+    const texts = await textSplitter.splitText(raw_text);
+    allTexts.push(...texts);
+  }
+
+
+  console.log(allTexts);
+  
+  const documentSearch = await FaissStore.fromTexts(
+    allTexts,
+    {},
+    new OpenAIEmbeddings({ openAIApiKey })
+  );
+
+  const resultOne = await documentSearch.similaritySearch(query, 1);
+
+  const llm = new ChatOpenAI({
+    openAIApiKey,
+    model: "gpt-4",
+    temperature: 0.9,
+  });
+
+  const chain = loadQAStuffChain(llm);
+  const result = await chain.call({
+    input_documents: resultOne,
+    question: query
+  });
+
+  console.log(result);
+  return result.text;
+}
+
+
 
 async function getChatResponse(message, userId) {
     const pool = await mssql.connect(sqlConfig)
@@ -771,6 +854,7 @@ module.exports={
     getChatResponse,
     chatWithFinanceBot,
     chatWithHealthBot,
-    chatWithMarketingBot
+    chatWithMarketingBot,
+    chatwithSalesBot
 
 }
