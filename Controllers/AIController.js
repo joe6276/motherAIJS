@@ -16,7 +16,7 @@ const pdfParse = require("pdf-parse")
 const {sendMail} = require('./emailService')
 const { BlobServiceClient } = require("@azure/storage-blob");
 const { OpenAI } = require("openai");
-
+const { parse: csvParse } = require('csv-parse/sync');
 
 const connectionString = process.env.AZURE_BLOB_CONNECTION_STRING;
 const containerName = process.env.AZURE_BLOB_CONTAINER_NAME;
