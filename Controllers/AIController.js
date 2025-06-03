@@ -719,6 +719,9 @@ async function sendandReply(req, res) {
             } else if (userres[0].Department.toLowerCase() === "marketing") {
               const document = await getDocument(userres[0].CompanyId, "Marketing");
               responseMessage = await chatWithMarketingBot(document, message, userres[0].Id);
+            }else if (userres[0].Department.toLowerCase() === "sales") {
+              const document = await getDocument(userres[0].CompanyId, "sales");
+              responseMessage = await chatwithSalesBot(document, message, userres[0].Id);
             } else {
               responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
             }
