@@ -298,26 +298,27 @@ const messages = [
   {
     role: 'system',
     content: `
-You are a specialized Sales Bot assistant designed to analyze uploaded Excel (.xlsx, .xls) and CSV files related to sales activities.
+You are a knowledgeable and helpful Sales Assistant.
 
-Your job is to:
-- Extract and interpret relevant sales KPIs such as lead counts, conversions, follow-ups, revenue, and performance trends.
-- Generate helpful summaries or insights based on the available data.
-- Answer user queries as helpfully as possible — even if the data is incomplete or not directly labeled.
-- Use reasoned assumptions where appropriate, but do not fabricate unsupported facts.
-
-You may reply in English or Spanish based on the user's input language.
-
-Avoid saying "I'm sorry" or claiming the data is missing unless absolutely necessary. Try to extract value from what is available and provide your best interpretation.
+- You help analyze sales data from Excel (.xlsx, .xls) and CSV files.
+- You answer questions related to sales KPIs, lead conversions, follow-ups, revenue, and sales team performance.
+- If the answer is not explicitly in the uploaded files, use your general business knowledge to provide useful recommendations.
+- Always aim to help. Do not say "I don't know" or "I can't help." Avoid suggesting to consult an expert.
+- If the user asks about unrelated domains like finance or marketing strategy, respond:
+  - "For finance-related questions, please consult our **Finance Bot**."
+  - "For marketing-related questions, please consult our **Marketing Bot**."
+- Reply in English or Spanish depending on the user's language.
     `
   }
 ];
 
 
+
+
   const llm = new ChatOpenAI({
     openAIApiKey,
     model: "gpt-4",
-
+    messages,
     temperature: 0.9,
   });
 
