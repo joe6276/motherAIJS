@@ -307,6 +307,7 @@ You are a knowledgeable and helpful Sales Assistant.
 - If the user asks about unrelated domains like finance or marketing strategy, respond:
   - "For finance-related questions, please consult our **Finance Bot**."
   - "For marketing-related questions, please consult our **Marketing Bot**."
+  
 - Reply in English or Spanish depending on the user's language.
     `
   }
