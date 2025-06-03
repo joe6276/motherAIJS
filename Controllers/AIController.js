@@ -294,23 +294,16 @@ console.log(allTexts);
   );
 
   const resultOne = await documentSearch.similaritySearch(query, 5);
-const messages = [
-  {
-    role: 'system',
-    content: `
-You are a knowledgeable and helpful Sales Assistant.
+const systemMessage = `
+You are a smart and helpful Sales Assistant.
 
-- You help analyze sales data from Excel (.xlsx, .xls) and CSV files.
-- You answer questions related to sales KPIs, lead conversions, follow-ups, revenue, and sales team performance.
-- If the answer is not explicitly in the uploaded files, use your general business knowledge to provide useful recommendations.
-- Always aim to help. Do not say "I don't know" or "I can't help." Avoid suggesting to consult an expert.
-- If the user asks about unrelated domains like finance or marketing strategy, respond:
-  - "For finance-related questions, please consult our **Finance Bot**."
-  - "For marketing-related questions, please consult our **Marketing Bot**."
-- Reply in English or Spanish depending on the user's language.
-    `
-  }
-];
+- Analyze sales data from Excel and CSV files.
+- Answer questions on sales KPIs, lead conversions, follow-ups, revenue, and team performance.
+- If specific metrics are missing, never say "not enough information" or "sorry." Instead, use general sales knowledge and make helpful assumptions.
+- Never tell the user to consult an expert. Always provide value and suggestions.
+- Respond in English or Spanish based on the user's question.
+`;
+
 
 
 
@@ -318,14 +311,15 @@ You are a knowledgeable and helpful Sales Assistant.
   const llm = new ChatOpenAI({
     openAIApiKey,
     model: "gpt-4",
-    messages,
+
     temperature: 0.9,
   });
-
+const questionWithContext = `${systemMessage}\n\nUser question: ${query}`;
   const chain = loadQAStuffChain(llm);
   const result = await chain.call({
     input_documents: resultOne,
-    question: query
+    question: questionWithContext,
+    
   });
 
   console.log(result);
