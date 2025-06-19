@@ -88,6 +88,108 @@ async function chatWithFinanceBot(fileUrls, query, userId) {
 
   return result.text
 }
+
+async function chatWithSocialBot(message, userId){
+ const pool = await mssql.connect(sqlConfig)
+  const occupation = await (await pool.request().input("Id", userId).execute("getUserById")).recordset
+  const messages = [
+    {
+      role: 'system',
+      content: `
+      You are a viral content expert creating high-impact scripts for Reels, TikToks, Shorts, and Telegram posts. Your role is to generate engaging, trend-aware content that aligns with specific goals: authority, virality, sales, or branding.
+
+🔧 Core Responsibilities
+Create hooks, scripts, visual directions, and CTAs
+
+Adapt style to fit platform dynamics and strategic objectives
+
+Use trending formats, viral psychology, and structured storytelling
+
+🧩 Content Framework
+Hook – Scroll-stopping openers using curiosity or emotion
+
+Script – Clear structure: hook, value body, smooth transitions, strong CTA
+
+Visuals – Suggest shots, effects, overlays, and scene ideas
+
+Platform Optimization – Tailor approach for each platform’s style
+
+🎯 Goal-Based Strategy
+Authority: Thought leadership, educational value
+
+Virality: Trend-jacking, shareability
+
+Sales: Story-driven persuasion, urgency
+
+Branding: Consistent voice, community focus
+
+🛠️ Output Includes
+Concept + Goal
+
+3–5 Hook Variations
+
+Full Script
+
+Visual Direction
+
+CTA Options
+
+Hashtag Suggestions
+
+Engagement Boosters
+
+Performance Prediction
+
+📈 Success Metrics
+Engagement rate, saves/shares
+
+Comment quality
+
+Follower growth
+
+Conversion alignment
+
+Focus on value + virality, stay platform-aware, and deliver scalable content that aligns with Zaka’s brand and growth goals.
+    `
+    }
+  ];
+
+
+
+
+  const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+
+  if (history.length) {
+    history.forEach(element => {
+      messages.push({ role: "user", content: element.originalCommand })
+      messages.push({ role: "assistant", content: element.output })
+
+    });
+  }
+console.log('History');
+console.log(history);
+
+
+  messages.push({ role: "user", content: message })
+
+
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      'Authorization': `Bearer ${API_KEy}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4',
+      messages,
+      temperature: 0.9 //0-2
+    })
+
+
+  })
+  const content = await response.json()
+  return content.choices[0].message.content
+}
 async function chatWithMarketingBot(fileUrls, query, userId) {
   const openAIApiKey = API_KEy;
   const allTexts = [];
@@ -228,6 +330,97 @@ async function chatWithHealthBot(fileUrls, query, userId) {
 }
 
 
+async function chawWithPMBots(fileUrls, query, userId) {
+  
+  const openAIApiKey = process.env.API_URL;
+  const allTexts = [];
+  console.log(fileUrls);
+  for (const fileUrl of fileUrls) {
+     let raw_text = "";
+const contentType = fileUrl.DocumentURL.split('.').pop().toLowerCase();
+ if (contentType === "xlsx" || contentType === "xls") {
+  const response = await axios.get(fileUrl.DocumentURL, { responseType: 'arraybuffer' });
+  const buffer = Buffer.from(response.data); // ensure it's a Node.js buffer
+  try {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetNames = workbook.SheetNames;
+    sheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName];
+      const rows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+      rows.forEach(row => {
+        raw_text += row.join(" ")+'\n';
+      });
+    });
+  } catch (error) {
+    console.error("Failed to parse Excel file:", error);
+  }
+}
+    const textSplitter = new CharacterTextSplitter({
+      separator: '\n',
+      chunkSize: 1000,
+      chunkOverlap: 200,
+      lengthFunction: (text) => text.length,
+    });
+
+    const texts = await textSplitter.splitText(raw_text);
+    console.log("The texts");
+    
+    console.log(texts);
+    
+    allTexts.push(...texts);
+  }
+
+
+console.log("All Text");
+console.log(allTexts);
+
+  const documentSearch = await FaissStore.fromTexts(
+    allTexts,
+    {},
+    new OpenAIEmbeddings({ openAIApiKey })
+  );
+
+  const resultOne = await documentSearch.similaritySearch(query, 5);
+  const systemMessage = `
+
+  You are Angie, a Project Manager AI Assistant. You analyze an Excel file with two sheets:
+
+  Projects: Overall project details (name, dates, status, priority).
+
+  Developer Tasks: Task assignments with developers, status, progress, and blockers.
+
+  Your role:
+
+  Summarize project status and progress.
+
+  Track developer workloads and deadlines.
+
+  Flag overdue tasks and blockers.
+
+  Generate concise reports and alerts for team coordination.
+
+  Keep responses clear, structured, and action-focused.
+  `;
+
+  const llm = new ChatOpenAI({
+    openAIApiKey,
+    model: "gpt-4",
+    temperature: 0.9,
+  });
+const questionWithContext = `${systemMessage}\n\nUser question: ${query}`;
+  const chain = loadQAStuffChain(llm);
+  const result = await chain.call({
+    input_documents: resultOne,
+    question: questionWithContext,
+    
+  });
+
+  console.log(result);
+  return result.text;
+}
+
+
+
 async function chatwithSalesBot(fileUrls, query, userId) {
   const openAIApiKey = process.env.API_URL;
   const allTexts = [];
@@ -303,9 +496,6 @@ You are a smart and helpful Sales Assistant.
 - Never tell the user to consult an expert. Always provide value and suggestions.
 - Respond in English or Spanish based on the user's question.
 `;
-
-
-
 
 
   const llm = new ChatOpenAI({
@@ -751,112 +941,118 @@ async function sendandReply(req, res) {
 }
 
 
-// async function sendandReply(req, res) {
-//     const from = req.body.From;
-//     const to = req.body.To;
-//     const message = req.body.Body?.trim().toLowerCase(); // Convert message to lowercase for easier comparison
-//     const mediaCount = parseInt(req.body.NumMedia || '0');
-//     const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
+async function sendandReply(req, res) {
+    const from = req.body.From;
+    const to = req.body.To;
+    const message = req.body.Body?.trim().toLowerCase(); // Convert message to lowercase for easier comparison
+    const mediaCount = parseInt(req.body.NumMedia || '0');
+    const client = twilio(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN);
 
-//     let responseMessage = "";
+    let responseMessage = "";
 
-//     try {
-//       // If message is "start", reset login session and prompt for email
-//       if (message === "start") {
-//         loginSteps.delete(from);
-//         loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
-//         responseMessage = "Please enter your email to log in.";
-//       } else {
-//         const session = loginSteps.get(from) || { step: 1, temp: {} };
+    try {
+      // If message is "start", reset login session and prompt for email
+      if (message === "start") {
+        loginSteps.delete(from);
+        loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
+        responseMessage = "Please enter your email to log in.";
+      } else {
+        const session = loginSteps.get(from) || { step: 1, temp: {} };
 
-//         if (session.step === 1) {
-//           responseMessage = "Welcome! Please enter your email to log in.";
-//           session.step = 2;
-//           loginSteps.set(from, session);
-//         } else if (session.step === 2) {
-//           session.temp.email = message;
-//           session.step = 3;
-//           loginSteps.set(from, session);
-//           responseMessage = "Thank you. Now, please enter your password.";
-//         } else if (session.step === 3) {
-//           const { email } = session.temp;
-//           const password = message;
+        if (session.step === 1) {
+          responseMessage = "Welcome! Please enter your email to log in.";
+          session.step = 2;
+          loginSteps.set(from, session);
+        } else if (session.step === 2) {
+          session.temp.email = message;
+          session.step = 3;
+          loginSteps.set(from, session);
+          responseMessage = "Thank you. Now, please enter your password.";
+        } else if (session.step === 3) {
+          const { email } = session.temp;
+          const password = message;
 
-//           const isLoginValid = await loginUserBot(email, password);
-//           if (isLoginValid) {
-//             loginSteps.set(from, { step: 4, temp: { email } });
-//             responseMessage = `✅ Login successful. Welcome ${email}! You can now chat with the bot.`;
-//           } else {
-//             loginSteps.delete(from);
-//             responseMessage = "❌ Invalid credentials. Please start again by typing your email.";
-//           }
-//         } else {
-//           // Step 4: Authenticated
-//           const userres = await getOccupation(session.temp?.email);
+          const isLoginValid = await loginUserBot(email, password);
+          if (isLoginValid) {
+            loginSteps.set(from, { step: 4, temp: { email } });
+            responseMessage = `✅ Login successful. Welcome ${email}! You can now chat with the bot.`;
+          } else {
+            loginSteps.delete(from);
+            responseMessage = "❌ Invalid credentials. Please start again by typing your email.";
+          }
+        } else {
+          // Step 4: Authenticated
+          const userres = await getOccupation(session.temp?.email);
 
-//           if (mediaCount > 0) {
-//             const mediaUrl = req.body.MediaUrl0;
-//             const contentType = req.body.MediaContentType0;
+          if (mediaCount > 0) {
+            const mediaUrl = req.body.MediaUrl0;
+            const contentType = req.body.MediaContentType0;
 
-//             const extension = contentType.split('/')[1];
-//             const filename = `whatsapp-upload-${Date.now()}.${extension}`;
+            const extension = contentType.split('/')[1];
+            const filename = `whatsapp-upload-${Date.now()}.${extension}`;
 
-//             const mediaBuffer = (await axios.get(mediaUrl, {
-//               responseType: 'arraybuffer',
-//               headers: {
-//                 Authorization: `Basic ${Buffer.from(process.env.ACCOUNT_SID + ':' + process.env.AUTH_TOKEN).toString('base64')}`,
-//               },
-//             })).data;
+            const mediaBuffer = (await axios.get(mediaUrl, {
+              responseType: 'arraybuffer',
+              headers: {
+                Authorization: `Basic ${Buffer.from(process.env.ACCOUNT_SID + ':' + process.env.AUTH_TOKEN).toString('base64')}`,
+              },
+            })).data;
 
-//             const { CompanyId, Department } = userres[0];
-//             const uploadedUrl = await uploadToAzure(mediaBuffer, filename, contentType);
+            const { CompanyId, Department } = userres[0];
+            const uploadedUrl = await uploadToAzure(mediaBuffer, filename, contentType);
 
-//             const pool = await mssql.connect(sqlConfig);
-//             await pool.request()
-//               .input("CompanyId", CompanyId)
-//               .input("Department", Department)
-//               .input("DocumentURL", uploadedUrl)
-//               .execute("addDocument");
+            const pool = await mssql.connect(sqlConfig);
+            await pool.request()
+              .input("CompanyId", CompanyId)
+              .input("Department", Department)
+              .input("DocumentURL", uploadedUrl)
+              .execute("addDocument");
 
-//             responseMessage = `✅ File uploaded successfully`;
-//           } else {
-//             // Continue with normal chat flow
-//             if(userres[0].Department){
-//                 if (userres[0].Department.toLowerCase() === "finance") {
-//                     const document = await getDocument(userres[0].CompanyId, "Finance");
-//                     responseMessage = await chatWithFinanceBot(document, message, userres[0].Id);
-//                   } else if (userres[0].Department.toLowerCase() === "marketing") {
-//                     const document = await getDocument(userres[0].CompanyId, "Marketing");
-//                     responseMessage = await chatWithMarketingBot(document, message, userres[0].Id);
-//                   } else {
-//                     responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
-//                   }
-//             }else{
-//                 responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
-//             }
-//           }
-//         }
-//       }
+            responseMessage = `✅ File uploaded successfully`;
+          } else {
+            // Continue with normal chat flow
+            if(userres[0].Department){
+                if (userres[0].Department.toLowerCase() === "finance") {
+                    const document = await getDocument(userres[0].CompanyId, "Finance");
+                    responseMessage = await chatWithFinanceBot(document, message, userres[0].Id);
+                  } else if (userres[0].Department.toLowerCase() === "marketing") {
+                    const document = await getDocument(userres[0].CompanyId, "Marketing");
+                    responseMessage = await chatWithMarketingBot(document, message, userres[0].Id);
+                  }else if (userres[0].Department.toLowerCase() === "pm") {
+                    const document = await getDocument(userres[0].CompanyId, "PM");
+                    responseMessage = await chawWithPMBots(document, message, userres[0].Id);
+                  }else if (userres[0].Department.toLowerCase() === "socialmedia") {
+                    const document = await getDocument(userres[0].CompanyId, "SocialMedia");
+                    responseMessage = await chatWithSocialBot(message, userres[0].Id);
+                  } else {
+                    responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
+                  }
+            }else{
+                responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
+            }
+          }
+        }
+      }
 
-//       await client.messages.create({
-//         from: to,
-//         to: from,
-//         body: responseMessage
-//       });
+      await client.messages.create({
+        from: to,
+        to: from,
+        body: responseMessage
+      });
 
-//       await insertToDB(req.body.Body?.trim(), responseMessage, "Whatsapp", from);
+      await insertToDB(req.body.Body?.trim(), responseMessage, "Whatsapp", from);
 
-//     } catch (err) {
-//       console.error("Error:", err);
-//         loginSteps.delete(from);
-//         loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
-//         responseMessage = "Session Restarted, Please enter your email to log in.";
+    } catch (err) {
+      console.error("Error:", err);
+        loginSteps.delete(from);
+        loginSteps.set(from, { step: 2, temp: {} }); // Skip step 1
+        responseMessage = "Session Restarted, Please enter your email to log in.";
 
-//          sendMail(`<p>${err}</p>`)
-//     }
+         sendMail(`<p>${err}</p>`)
+    }
 
-//     res.send("<Response></Response>");
-//   }
+    res.send("<Response></Response>");
+  }
 
 
 
@@ -877,6 +1073,8 @@ module.exports = {
   chatWithFinanceBot,
   chatWithHealthBot,
   chatWithMarketingBot,
-  chatwithSalesBot
+  chatwithSalesBot,
+  chawWithPMBots,
+  chatWithSocialBot
 
 }

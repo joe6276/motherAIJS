@@ -6,7 +6,7 @@ const { verifySuperAdminToken } =require("../Middlewares/index")
 const userRouter = Router()
 
 
-userRouter.post("/register",verifyAdmin, addUser)
+userRouter.post("/register", addUser)
 userRouter.post("/login", loginUser)
 userRouter.post("/admin", verifySuperAdminToken,createAdmin)
 userRouter.get("/:id", getAdmin)
