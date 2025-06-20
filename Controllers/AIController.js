@@ -89,107 +89,109 @@ async function chatWithFinanceBot(fileUrls, query, userId) {
   return result.text
 }
 
-async function chatWithSocialBot(message, userId){
- const pool = await mssql.connect(sqlConfig)
-  const occupation = await (await pool.request().input("Id", userId).execute("getUserById")).recordset
-  const messages = [
-    {
-      role: 'system',
-      content: `
-      You are a viral content expert creating high-impact scripts for Reels, TikToks, Shorts, and Telegram posts. Your role is to generate engaging, trend-aware content that aligns with specific goals: authority, virality, sales, or branding.
+// async function chatWithSocialBot(message, userId){
+//  const pool = await mssql.connect(sqlConfig)
+//   const occupation = await (await pool.request().input("Id", userId).execute("getUserById")).recordset
+//   const messages = [
+//     {
+//       role: 'system',
+//       content: `
+//       You are a viral content expert creating high-impact scripts for Reels, TikToks, Shorts, and Telegram posts. Your role is to generate engaging, trend-aware content that aligns with specific goals: authority, virality, sales, or branding.
 
-🔧 Core Responsibilities
-Create hooks, scripts, visual directions, and CTAs
+// 🔧 Core Responsibilities
+// Create hooks, scripts, visual directions, and CTAs
 
-Adapt style to fit platform dynamics and strategic objectives
+// Adapt style to fit platform dynamics and strategic objectives
 
-Use trending formats, viral psychology, and structured storytelling
+// Use trending formats, viral psychology, and structured storytelling
 
-🧩 Content Framework
-Hook – Scroll-stopping openers using curiosity or emotion
+// 🧩 Content Framework
+// Hook – Scroll-stopping openers using curiosity or emotion
 
-Script – Clear structure: hook, value body, smooth transitions, strong CTA
+// Script – Clear structure: hook, value body, smooth transitions, strong CTA
 
-Visuals – Suggest shots, effects, overlays, and scene ideas
+// Visuals – Suggest shots, effects, overlays, and scene ideas
 
-Platform Optimization – Tailor approach for each platform’s style
+// Platform Optimization – Tailor approach for each platform’s style
 
-🎯 Goal-Based Strategy
-Authority: Thought leadership, educational value
+// 🎯 Goal-Based Strategy
+// Authority: Thought leadership, educational value
 
-Virality: Trend-jacking, shareability
+// Virality: Trend-jacking, shareability
 
-Sales: Story-driven persuasion, urgency
+// Sales: Story-driven persuasion, urgency
 
-Branding: Consistent voice, community focus
+// Branding: Consistent voice, community focus
 
-🛠️ Output Includes
-Concept + Goal
+// 🛠️ Output Includes
+// Concept + Goal
 
-3–5 Hook Variations
+// 3–5 Hook Variations
 
-Full Script
+// Full Script
 
-Visual Direction
+// Visual Direction
 
-CTA Options
+// CTA Options
 
-Hashtag Suggestions
+// Hashtag Suggestions
 
-Engagement Boosters
+// Engagement Boosters
 
-Performance Prediction
+// Performance Prediction
 
-📈 Success Metrics
-Engagement rate, saves/shares
+// 📈 Success Metrics
+// Engagement rate, saves/shares
 
-Comment quality
+// Comment quality
 
-Follower growth
+// Follower growth
 
-Conversion alignment
+// Conversion alignment
 
-Focus on value + virality, stay platform-aware, and deliver scalable content that aligns with Zaka’s brand and growth goals.
-    `
-    }
-  ];
-
-
+// Focus on value + virality, stay platform-aware, and deliver scalable content that aligns with Zaka’s brand and growth goals.
+//     `
+//     }
+//   ];
 
 
-  const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
-
-  if (history.length) {
-    history.forEach(element => {
-      messages.push({ role: "user", content: element.originalCommand })
-      messages.push({ role: "assistant", content: element.output })
-
-    });
-  }
-console.log('History');
-console.log(history);
 
 
-  messages.push({ role: "user", content: message })
+//   const history = await (await pool.request().input("UserId", userId).execute("GetUserRecords")).recordset
+
+//   if (history.length) {
+//     history.forEach(element => {
+//       messages.push({ role: "user", content: element.originalCommand })
+//       messages.push({ role: "assistant", content: element.output })
+
+//     });
+//   }
+// console.log('History');
+// console.log(history);
 
 
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      'Authorization': `Bearer ${API_KEy}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'gpt-4',
-      messages,
-      temperature: 0.9 //0-2
-    })
+//   messages.push({ role: "user", content: message })
 
 
-  })
-  const content = await response.json()
-  return content.choices[0].message.content
-}
+//   const response = await fetch(API_URL, {
+//     method: "POST",
+//     headers: {
+//       'Authorization': `Bearer ${API_KEy}`,
+//       'Content-Type': 'application/json'
+//     },
+//     body: JSON.stringify({
+//       model: 'gpt-4',
+//       messages,
+//       temperature: 0.9 //0-2
+//     })
+
+
+//   })
+//   const content = await response.json()
+//   return content.choices[0].message.content
+// }
+
+
 async function chatWithMarketingBot(fileUrls, query, userId) {
   const openAIApiKey = API_KEy;
   const allTexts = [];
@@ -329,6 +331,96 @@ async function chatWithHealthBot(fileUrls, query, userId) {
   return result.text;
 }
 
+async function chatWithSocialBot(fileUrls, query, userId) {
+  
+  const openAIApiKey = process.env.API_URL;
+  const allTexts = [];
+  console.log(fileUrls);
+  for (const fileUrl of fileUrls) {
+     let raw_text = "";
+const contentType = fileUrl.DocumentURL.split('.').pop().toLowerCase();
+ if (contentType === "xlsx" || contentType === "xls") {
+  const response = await axios.get(fileUrl.DocumentURL, { responseType: 'arraybuffer' });
+  const buffer = Buffer.from(response.data); // ensure it's a Node.js buffer
+  try {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetNames = workbook.SheetNames;
+    sheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName];
+      const rows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+      rows.forEach(row => {
+        raw_text += row.join(" ")+'\n';
+      });
+    });
+  } catch (error) {
+    console.error("Failed to parse Excel file:", error);
+  }
+}
+    const textSplitter = new CharacterTextSplitter({
+      separator: '\n',
+      chunkSize: 1000,
+      chunkOverlap: 200,
+      lengthFunction: (text) => text.length,
+    });
+
+    const texts = await textSplitter.splitText(raw_text);
+    console.log("The texts");
+    
+    console.log(texts);
+    
+    allTexts.push(...texts);
+  }
+
+
+console.log("All Text");
+console.log(allTexts);
+
+  const documentSearch = await FaissStore.fromTexts(
+    allTexts,
+    {},
+    new OpenAIEmbeddings({ openAIApiKey })
+  );
+
+  const resultOne = await documentSearch.similaritySearch(query, 5);
+const systemMessage = `
+You are an Organic Content Agent, an AI specialized in creating viral, high-impact social media content. You work exclusively with Zaka to generate scripts and ideas for platforms like Reels, TikToks, YouTube Shorts, and Telegram posts.
+
+Your responsibilities:
+- Develop viral content concepts tailored to goals: authority, virality, sales, or branding.
+- Generate hooks, copy, structure, visuals, and strong CTAs for each post.
+- Adapt tone, style, and format to each platform and objective.
+- Incorporate current trends, audio, visual styles, and platform best practices.
+- Provide content in a structured format including:
+  1. Content goal
+  2. Hook variations (3–5)
+  3. Full script
+  4. Visual direction (shots, transitions, overlays)
+  5. CTA options
+  6. Hashtag suggestions
+  7. Engagement drivers
+  8. Performance insight (predicted reach/engagement)
+
+Be creative but strategic. Always prioritize value, platform-native style, and Zaka's brand voice while optimizing for attention, shares, and conversion.
+`;
+
+
+  const llm = new ChatOpenAI({
+    openAIApiKey,
+    model: "gpt-4",
+    temperature: 0.9,
+  });
+const questionWithContext = `${systemMessage}\n\nUser question: ${query}`;
+  const chain = loadQAStuffChain(llm);
+  const result = await chain.call({
+    input_documents: resultOne,
+    question: questionWithContext,
+    
+  });
+
+  console.log(result);
+  return result.text;
+}
+
 
 async function chawWithPMBots(fileUrls, query, userId) {
   
@@ -398,6 +490,8 @@ console.log(allTexts);
   Flag overdue tasks and blockers.
 
   Generate concise reports and alerts for team coordination.
+
+ Convert all Excel date serial numbers (e.g., 45850) into human-readable date formats using words only (e.g., “June 19, 2025”) before analyzing any timelines, deadlines, or duratio
 
   Keep responses clear, structured, and action-focused.
   `;
@@ -1023,7 +1117,7 @@ async function sendandReply(req, res) {
                     responseMessage = await chawWithPMBots(document, message, userres[0].Id);
                   }else if (userres[0].Department.toLowerCase() === "socialmedia") {
                     const document = await getDocument(userres[0].CompanyId, "SocialMedia");
-                    responseMessage = await chatWithSocialBot(message, userres[0].Id);
+                    responseMessage = await chatWithSocialBot(document, message, userres[0].Id);
                   } else {
                     responseMessage = await getChatResponse1(message, from, userres[0].Occupation);
                   }

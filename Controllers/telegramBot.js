@@ -119,10 +119,9 @@ bot.on('message', async (msg) => {
               responseMessage = botReply;
           }
           else if(department === "socialmedia"){
-            const userRes = await getOccupation(session.temp?.email);
-            const Id = userRes[0].Id;
-            console.log("The Id" ,Id)
-              const botReply = await chatWithSocialBot(userMessage,Id);
+            const document = await getDocument(companyId,"SocialMedia");
+              console.log(document);
+              const botReply = await chatWithSocialBot(document, userMessage,Id);
               responseMessage = botReply;
           }
           else if(department ==="marketing"){
